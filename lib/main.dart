@@ -149,7 +149,7 @@ class _GamePageState extends State<GamePage> {
             child: ControlPad(
               onStart: _startGame,
               onPause: _togglePause,
-              onJet: (active) => _engine.activateJet(active),
+              onToggleDir: () => _engine.toggleDir(),
               onFire: () {
                 if (_gameStarted && !_gameOver) _engine.fire();
               },

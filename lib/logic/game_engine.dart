@@ -6,7 +6,8 @@ import '../core/constants.dart';
 class GameEngine {
   // Estado
   double shipY = 0;
-  double shipVelocity = 0;
+  double shipVelocity = 0.01;
+  int shipDir = 1; // 1 = para cima, -1 = para baixo
   int score = 0;
   int highScore = 0;
   int lives = 0;
@@ -15,13 +16,17 @@ class GameEngine {
   static const bool enableSound = false;
 
   // Invencibilidade
-  int _invulnerableTimer =
-      0; // Conta quantos frames faltam para acabar a imunidade
+  int _invulnerableTimer = 0; // Conta quantos frames faltam para acabar a imunidade
   bool get isInvulnerable => _invulnerableTimer > 0;
 
-  List<GameObj> meteors = [];
+  late Enemy enemy;
+
+  List<GameObj> enemyBlts = [];
   List<GameObj> bullets = [];
+  List<GameObj> obstaculos = [];
   List<Particle> particles = [];
+
+  int level = 1;
 
   VoidCallback? onShootEvent;
   VoidCallback? onExplosionEvent;
@@ -40,86 +45,227 @@ class GameEngine {
   // Reiniciar
   void reset() {
     shipY = 0;
-    shipVelocity = 0;
+    shipDir = 1;
     score = 0;
     lives = GameConfig.initialLives;
     _invulnerableTimer = 0;
-    meteors.clear();
+
+    enemy = Enemy(
+        x: 0.8,
+        y: 0.0,
+        vy: GameConfig.enemySpeed,
+        life: 5,
+        type: EnemyType.padrao,
+        shootTimer: 100);
+
+    enemyBlts.clear();
     bullets.clear();
+    particles.clear();
+
+    _generateObstacles();
+  }
+
+  void _spawnEnemy() {
+    // A cada nível, o inimigo ganha +10 de vida
+    int newHp = GameConfig.enemyBaseHp + ((level - 1) * 10);
+    
+    List<EnemyType> enemyTypes = EnemyType.values;
+    EnemyType selectedType = enemyTypes[Random().nextInt(enemyTypes.length)];
+
+    enemy = Enemy(
+      x: 0.8, 
+      y: 0.0,
+      life: newHp,
+      lifeMax: newHp,
+      type: selectedType,
+      // Opcional: Aumentar velocidade vy com o nível
+      vy: 0.015 + (level * 0.002)
+
+    );
+  }
+
+  // NOVO: Passar de Fase
+  void _nextLevel() {
+    level++; // Aumenta dificuldade
+    score += 100; // Bônus por matar o boss
+    
+    // 1. Limpa a tela
+    enemyBlts.clear();
+    bullets.clear();
+    // (Não limpamos partículas para deixar a explosão do boss aparecer)
+
+    // 2. Novos Obstáculos
+    _generateObstacles();
+
+    // 3. Novo Inimigo
+    _spawnEnemy();
+  }
+
+  void _generateObstacles() {
+    obstaculos.clear();
+    Random r = Random();
+    int count = r.nextInt(4) + 2; // 2, 3, 4 ou 5
+    
+    for (int i = 0; i < count; i++) {
+      // X entre -0.3 e 0.3 (meio da tela)
+      double randX = (r.nextDouble() * 0.6) - 0.3;
+      // Y entre -0.8 e 0.8
+      double randY = (r.nextDouble() * 1.6) - 0.8;
+      
+      obstaculos.add(GameObj(x: randX, y: randY));
+    }
   }
 
   // Atualizar Física (chamado a cada frame)
   // Retorna TRUE se houve colisão (Game Over)
   bool update() {
     _updateShip();
-    _updateMeteors();
+    _updateEnemy();
+    _updateEnemyBullets();
     _updateBullets();
     _updateParticles();
     if (_invulnerableTimer > 0) {
       _invulnerableTimer--;
     }
 
-    meteors.removeWhere((m) => m.isDead);
+    enemyBlts.removeWhere((m) => m.isDead);
     bullets.removeWhere((b) => b.isDead);
 
     return _checkCollisions();
   }
 
-  void activateJet(bool isActive) {
-    isJetActive = isActive;
+  void toggleDir() {
+    shipDir = shipDir * -1;
   }
 
   void fire() {
-    bullets.add(GameObj(x: -0.8, y: shipY, speed: 0.05));
+    bullets.add(GameObj(x: -0.8, y: shipY, vx: 0.05, vy: 0));
     if (enableSound) onShootEvent?.call();
   }
 
   // --- Lógica Interna ---
+  void _updateEnemy() {
+      // 1. Movimento Vertical (Bounce)
+      enemy.y += enemy.vy;
+      
+      // Se bateu em cima ou em baixo, inverte a direção
+      if (enemy.y < -0.9 || enemy.y > 0.9) {
+        enemy.vy = -enemy.vy;
+        // Correção de posição para não ficar preso na parede
+        enemy.y = enemy.y.clamp(-0.9, 0.9);
+      }
+
+      // 2. Lógica de Tiro (A cada 60 frames / 1 segundo aprox)
+      enemy.shootTimer++;
+      switch (enemy.type) {
+      case EnemyType.padrao:
+        if (enemy.shootTimer > 60) { // 1 tiro por segundo
+          _enemyFire(isFragmenting: false);
+          enemy.shootTimer = 0;
+        }
+        break;
+
+      case EnemyType.fragmenta:
+        if (enemy.shootTimer > 90) { // Tiro mais lento (1.5s)
+          _enemyFire(isFragmenting: true);
+          enemy.shootTimer = 0;
+        }
+        break;
+
+      case EnemyType.rajada:
+        // Lógica de Rajada
+        if (enemy.shootTimer > 40) { // Intervalo entre rajadas
+           _enemyFire(isFragmenting: false);
+           enemy.burstCount++;
+           
+           if (enemy.burstCount < 3) {
+             enemy.shootTimer = 30; // 30 frames para o próximo tiro DA RAJADA (rápido)
+           } else {
+             enemy.burstCount = 0;
+             enemy.shootTimer = -20; // Pausa longa após a rajada
+           }
+        }
+        break;
+    }
+  }
+
+  void _enemyFire({required bool isFragmenting}) {
+    double dx = -0.8 - enemy.x;
+    double dy = shipY - enemy.y;
+    double distance = sqrt(dx*dx + dy*dy);
+    double speed = 0.025;
+
+    enemyBlts.add(GameObj(
+      x: enemy.x - 0.1,
+      y: enemy.y,
+      vx: (dx / distance) * speed,
+      vy: 0, // (dy / distance) * speed,
+      canSplit: isFragmenting, // Define se vai fragmentar
+    ));
+    // Som opcional aqui
+  }
 
   void _updateShip() {
-    if (isJetActive) {
-      shipVelocity += GameConfig.jetThrust;
-    } else {
-      shipVelocity += GameConfig.gravity;
-    }
-
-    shipVelocity = shipVelocity.clamp(
-        -GameConfig.shipMaxVelocity, GameConfig.shipMaxVelocity);
-    shipY += shipVelocity * 0.005;
+    
+    shipY += shipVelocity * shipDir;
 
     // Limites de tela
     if (shipY < -0.9) {
-      shipY = -0.9;
-      shipVelocity = 0;
+      shipDir = 1;
     } else if (shipY > 0.9) {
-      shipY = 0.9;
-      shipVelocity = 0;
+      shipDir = -1;
     }
   }
 
-  void _updateMeteors() {
-    for (var meteor in meteors) {
-      if (meteor.isDead) continue;
-      meteor.x -= meteor.speed * (1 + score / 50);
+  void _updateEnemyBullets() {
+    // Precisamos de uma lista temporária para adicionar os fragmentos
+    // pois não podemos adicionar na lista que estamos iterando
+    List<GameObj> newFragments = [];
+
+    for (var b in enemyBlts) {
+      if (b.isDead) continue;
+      b.x += b.vx;
+      b.y += b.vy;
+
+      // LÓGICA DE FRAGMENTAÇÃO
+      // Se for fragmentável, não tiver fragmentado, e passar do meio da tela (x < 0)
+      if (b.canSplit && !b.hasSplit && b.x < 0.2) { 
+        b.hasSplit = true;
+        b.isDead = true; // O projétil "mãe" some
+
+        // Cria 3 fragmentos em leque
+        // 1. Meio (continua a trajetória original)
+        newFragments.add(GameObj(x: b.x, y: b.y, vx: b.vx * 1.2, vy: b.vy));
+        
+        // 2. Cima (Desvia um pouco o vy para cima)
+        newFragments.add(GameObj(x: b.x, y: b.y, vx: b.vx * 1.1, vy: b.vy - 0.015));
+
+        // 3. Baixo (Desvia um pouco o vy para baixo)
+        newFragments.add(GameObj(x: b.x, y: b.y, vx: b.vx * 1.1, vy: b.vy + 0.015));
+        
+        // Efeito visual
+        _createExplosion(b.x, b.y);
+      }
     }
 
-    if (meteors.isNotEmpty && meteors.first.x < -1.5) {
-      meteors.removeAt(0);
-    }
+    // Adiciona os fragmentos gerados à lista principal
+    enemyBlts.addAll(newFragments);
 
-    if (Random().nextInt(100) < 2) {
-      meteors.add(
-          GameObj(x: 1.5, y: (Random().nextDouble() * 2) - 1, speed: 0.02));
+    // Remove quem saiu da tela
+    if (enemyBlts.isNotEmpty) {
+      // Lógica simplificada de limpeza
+      enemyBlts.removeWhere((b) => b.x < -1.5 || b.y < -1.5 || b.y > 1.5);
     }
   }
-
   void _updateBullets() {
     for (var bullet in bullets) {
       if (bullet.isDead) continue;
-      bullet.x += bullet.speed;
+      bullet.x += bullet.vx;
+      bullet.y += bullet.vy;
     }
     bullets.removeWhere((bullet) => bullet.x > 1.5);
   }
+
 
   void _updateParticles() {
     for (var p in particles) {
@@ -142,13 +288,41 @@ class GameEngine {
 
       return overlapX && overlapY;
     }
-    for (var meteor in meteors) {
-      if (meteor.isDead) continue; 
+    // A. Colisão Tiros Jogador vs Obstáculos
+    for (var pBullet in bullets) {
+      if (pBullet.isDead) continue;
+      for (var obs in obstaculos) {
+        if (checkOverlap(pBullet.x, pBullet.y, GameConfig.bulletWidth, GameConfig.bulletHeight,
+                         obs.x, obs.y, GameConfig.obstacleSize, GameConfig.obstacleSize)) {
+          pBullet.isDead = true; // Tiro morre
+          _createExplosion(pBullet.x, pBullet.y); // Efeito visual de batida
+          // Obstáculo indestrutível, não faz nada com ele
+          break;
+        }
+      }
+    }
+
+    // B. Colisão Tiros Inimigo vs Obstáculos
+    for (var eBullet in enemyBlts) {
+      if (eBullet.isDead) continue;
+      for (var obs in obstaculos) {
+        if (checkOverlap(eBullet.x, eBullet.y, GameConfig.meteorSize, GameConfig.meteorSize,
+                         obs.x, obs.y, GameConfig.obstacleSize, GameConfig.obstacleSize)) {
+          eBullet.isDead = true;
+          _createExplosion(eBullet.x, eBullet.y);
+          break;
+        }
+      }
+    }
+    
+
+    for (var eb in enemyBlts) {
+      if (eb.isDead) continue; 
 
       // 1. Colisão Nave
       bool hitShip = checkOverlap(
         -0.8, shipY, GameConfig.shipWidth, GameConfig.shipHeight,
-        meteor.x, meteor.y, GameConfig.meteorSize, GameConfig.meteorSize
+        eb.x, eb.y, GameConfig.meteorSize, GameConfig.meteorSize
       );
 
       if (hitShip) {
@@ -158,7 +332,7 @@ class GameEngine {
           _createExplosion(-0.8, shipY);
           if (enableSound) onExplosionEvent?.call();
           
-          meteor.isDead = true;
+          eb.isDead = true;
 
           if (lives <= 0) {
             if (score > highScore) {
@@ -169,28 +343,36 @@ class GameEngine {
           }
         }
       }
-
-      // 2. Colisão Tiro
+    }
+    // 2. Colisão Tiro
       for (var bullet in bullets) {
         if (bullet.isDead) continue; 
 
         bool hitBullet = checkOverlap(
           bullet.x, bullet.y, GameConfig.bulletWidth, GameConfig.bulletHeight,
-          meteor.x, meteor.y, GameConfig.meteorSize, GameConfig.meteorSize
+          enemy.x, enemy.y, GameConfig.enemyWidth, GameConfig.enemyHeight
         );
 
         if (hitBullet) {
-          _createExplosion(meteor.x, meteor.y);
+          _createExplosion(enemy.x, enemy.y);
           if (enableSound) onExplosionEvent?.call();
           
-          meteor.isDead = true;
+          enemy.life -= 1;
           bullet.isDead = true;
           
           score += 5;
+
+          // Verifica se matou
+          if (enemy.life <= 0) {
+            _createExplosion(enemy.x, enemy.y); // Explosão extra pela morte
+            _createExplosion(enemy.x + 0.1, enemy.y + 0.1);
+            _createExplosion(enemy.x - 0.1, enemy.y - 0.1);
+            
+            _nextLevel(); // <--- CHAMA A MUDANÇA DE FASE
+          }
           break;
         }
       }
-    }
     return false;
   }
 

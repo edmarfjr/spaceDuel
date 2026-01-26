@@ -1,9 +1,40 @@
 class GameObj {
   double x;
   double y;
-  double speed;
+  double vx;
+  double vy;
+  bool canSplit;
+  bool hasSplit;
   bool isDead = false;
-  GameObj({required this.x, required this.y, required this.speed});
+  GameObj({required this.x, required this.y,  this.vx=0,  this.vy=0, this.canSplit = false, this.hasSplit = false});
+}
+
+enum EnemyType { 
+  padrao, 
+  rajada, 
+  fragmenta 
+}
+
+class Enemy {
+  double x;
+  double y;
+  double vy;
+  bool isDead = false;
+  int life;
+  int lifeMax;
+  EnemyType type;
+  int shootTimer;
+  int burstCount;
+  Enemy({
+    required this.x,
+    required this.y,
+    required this.vy,
+    this.life = 5,
+    this.lifeMax = 5,
+    this.type = EnemyType.padrao,
+    this.shootTimer = 0,
+    this.burstCount = 0,
+  });
 }
 
 class Particle {

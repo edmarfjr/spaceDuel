@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/constants.dart';
 import '../core/styles.dart';
 import '../logic/game_engine.dart';
+import '../models/entities.dart';
 
 class GameScreenLCD extends StatelessWidget {
   final GameEngine engine;
@@ -78,6 +79,18 @@ class GameScreenLCD extends StatelessWidget {
               );
             }
 
+            //DEFINIÇÃO DOS ÍCONES DO INIMIGO ---
+            IconData getEnemyIcon() {
+              switch (engine.enemy.type) {
+                case EnemyType.rajada: 
+                  return Icons.rocket; // Foguete pesado
+                case EnemyType.fragmenta: 
+                  return Icons.change_history; // Triângulo/Stealth
+                default: 
+                  return Icons.airplanemode_active; // Jato padrão
+              }
+            }
+
             return Stack(
               children: [
                 // 1. NAVE
@@ -96,10 +109,58 @@ class GameScreenLCD extends StatelessWidget {
                       ),
                     ),
                   ),
-
+                  //obstaculos
+                  ...engine.obstaculos.map((obs) => positionObject(
+                  x: obs.x, y: obs.y, w: GameConfig.obstacleSize, h: GameConfig.obstacleSize,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.obstacle
+                      //border: Border.all(color: AppColors.pixel, width: 2), // Borda para destacar
+                      //borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Center(child: Icon(Icons.close, size: 10, color: Colors.black12)), // Detalhe visual (X)
+                  ),
+                )),
+                //inimigo
+               if (gameStarted) // Só mostra se o jogo começou
+                  positionObject(
+                    x: engine.enemy.x,
+                    y: engine.enemy.y,
+                    w: GameConfig.enemyWidth,
+                    h: GameConfig.enemyHeight,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: Transform.rotate(
+                        angle: -1.57, // Aponta para a esquerda
+                        child: Icon(getEnemyIcon(), color: AppColors.pixel),
+                      ),
+                    ),
+                  ),
+                  // Desenhamos uma barra vermelha pequena em cima do inimigo
+                if (gameStarted)
+                  Positioned(
+                    // Posição baseada na tela: X do inimigo convertido, um pouco acima (Y - algo)
+                    left: ((engine.enemy.x + 1) / 2) * screenW - 20, // Centralizado aprox
+                    top: ((engine.enemy.y + 1) / 2) * screenH - 30, // Acima da nave
+                    child: Container(
+                      width: 40,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.black12,
+                        borderRadius: BorderRadius.circular(2),
+                        border: Border.all(color: Colors.black26, width: 0.5)
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        // Calcula % de vida
+                        widthFactor: (engine.enemy.life / engine.enemy.lifeMax).clamp(0.0, 1.0),
+                        child: Container(color: Colors.red),
+                      ),
+                    ),
+                  ),
                 // 2. METEOROS
                 // Agora sem FittedBox, o Container vai esticar para preencher a hitbox
-                ...engine.meteors.map((m) => positionObject(
+                ...engine.enemyBlts.map((m) => positionObject(
                   x: m.x, 
                   y: m.y, 
                   w: GameConfig.meteorSize, 

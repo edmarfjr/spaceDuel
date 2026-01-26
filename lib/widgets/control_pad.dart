@@ -5,14 +5,14 @@ import '../core/constants.dart';
 class ControlPad extends StatelessWidget {
   final VoidCallback onStart; // Inicia o jogo
   final VoidCallback onPause; // Pausa o jogo
-  final Function(bool) onJet;
+  final VoidCallback onToggleDir;
   final VoidCallback onFire;
 
   const ControlPad({
     super.key, 
     required this.onStart, 
     required this.onPause,
-    required this.onJet, 
+    required this.onToggleDir, 
     required this.onFire
   });
   void _vibrate() {
@@ -29,10 +29,15 @@ class ControlPad extends StatelessWidget {
         children: [
           // Botão Jato (Esquerda)
           GestureDetector(
-            onTapDown: (_) { onStart(); onJet(true); _vibrate();},
-            onTapUp: (_) => onJet(false),
-            onTapCancel: () => onJet(false),
-            child: _buildButton(size: 80, color: AppColors.btnBlack, icon: Icons.arrow_upward),
+            onTap: () {
+              onStart();
+              onToggleDir();
+              _vibrate();
+            },
+            //onTapDown: (_) { onStart(); onJet(true); _vibrate();},
+            //onTapUp: (_) => onJet(false),
+            //onTapCancel: () => onJet(false),
+            child: _buildButton(size: 80, color: AppColors.btnBlack, icon: Icons.unfold_more),
           ),
           
           // --- ÁREA CENTRAL (SELECT / START) ---
@@ -59,7 +64,7 @@ class ControlPad extends StatelessWidget {
               onFire();
               _vibrate();
             },
-            child: _buildButton(size: 80, color: AppColors.btnRed, label: "A"),
+            child: _buildButton(size: 80, color: AppColors.btnRed, icon: Icons.gps_fixed),
           ),
         ],
       ),
