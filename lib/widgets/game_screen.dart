@@ -113,7 +113,7 @@ class GameScreenLCD extends StatelessWidget {
                   ...engine.obstaculos.map((obs) => positionObject(
                   x: obs.x, y: obs.y, w: GameConfig.obstacleSize, h: GameConfig.obstacleSize,
                   child: Container(
-                    decoration: BoxDecoration(
+                    decoration:const BoxDecoration(
                       color: AppColors.obstacle
                       //border: Border.all(color: AppColors.pixel, width: 2), // Borda para destacar
                       //borderRadius: BorderRadius.circular(4),

@@ -66,11 +66,15 @@ class GameEngine {
   }
 
   void _spawnEnemy() {
-    // A cada nível, o inimigo ganha +10 de vida
-    int newHp = GameConfig.enemyBaseHp + ((level - 1) * 10);
+    // A cada nível, o inimigo ganha +3 de vida
+    int newHp = GameConfig.enemyBaseHp + ((level - 1) * 3);
     
     List<EnemyType> enemyTypes = EnemyType.values;
     EnemyType selectedType = enemyTypes[Random().nextInt(enemyTypes.length)];
+    int nRajada = 0;
+    if (selectedType == EnemyType.rajada) {
+      nRajada = 1 + (level ~/ 3); // A cada 3 níveis, aumenta a rajada
+    }
 
     enemy = Enemy(
       x: 0.8, 
@@ -79,8 +83,8 @@ class GameEngine {
       lifeMax: newHp,
       type: selectedType,
       // Opcional: Aumentar velocidade vy com o nível
-      vy: 0.015 + (level * 0.002)
-
+      vy: 0.015 + (level * 0.002),
+      burstCount: nRajada
     );
   }
 
@@ -104,7 +108,7 @@ class GameEngine {
   void _generateObstacles() {
     obstaculos.clear();
     Random r = Random();
-    int count = r.nextInt(4) + 2; // 2, 3, 4 ou 5
+    int count = r.nextInt(3) + 1; // 2, 3, 4 ou 5
     
     for (int i = 0; i < count; i++) {
       // X entre -0.3 e 0.3 (meio da tela)
@@ -229,7 +233,7 @@ class GameEngine {
 
       // LÓGICA DE FRAGMENTAÇÃO
       // Se for fragmentável, não tiver fragmentado, e passar do meio da tela (x < 0)
-      if (b.canSplit && !b.hasSplit && b.x < 0.2) { 
+      if (b.canSplit && !b.hasSplit && b.x < -0.2) { 
         b.hasSplit = true;
         b.isDead = true; // O projétil "mãe" some
 
