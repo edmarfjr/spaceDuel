@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class GameConfig {
-  static const double gravity = 0.3;
-  static const double jetThrust = -0.8;
+  static const double gravity = 0.2;
+  static const double jetThrust = -0.5;
   static const double shipMaxVelocity = 15.0;
   static const double gameSpeed = 3.0;
   static const int fps = 60;

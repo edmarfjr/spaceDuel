@@ -45,6 +45,8 @@ class _GamePageState extends State<GamePage> {
   bool _gameOver = false;
   bool _isPaused = false;
 
+  int _debugTapCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -73,7 +75,7 @@ class _GamePageState extends State<GamePage> {
     });
 
     _gameLoopTimer?.cancel();
-    _gameLoopTimer = Timer.periodic(Duration(milliseconds: 1000 ~/ GameConfig.fps), (timer) {
+    _gameLoopTimer = Timer.periodic(const Duration(milliseconds: 1000 ~/ GameConfig.fps), (timer) {
       if (!_isPaused) {
         setState(() {
           // Pede para a Engine calcular o próximo frame
@@ -120,13 +122,25 @@ class _GamePageState extends State<GamePage> {
           ),
           
           // Logo
-          const Text("SpaceBoy", 
-            style: TextStyle(
-              color: Color(0xFF303080), 
-              fontWeight: FontWeight.bold, 
-              fontStyle: FontStyle.italic,
-              fontSize: 24
-            )
+          GestureDetector(
+            onTap: () {
+              _debugTapCount++;
+              if (_debugTapCount >= 3) {
+                setState(() {
+                  _engine.toggleDebugMode(); // Ativa/Desativa as hitboxes
+                  debugPrint("Debug Mode: ${_engine.showHitboxes}");
+                  _debugTapCount = 0; // Reseta o contador
+                });
+              }
+            },
+            child: const Text("SpaceBoy", 
+              style: TextStyle(
+                color: Color(0xFF303080), 
+                fontWeight: FontWeight.bold, 
+                fontStyle: FontStyle.italic,
+                fontSize: 24
+              )
+            ),
           ),
 
           // Controles

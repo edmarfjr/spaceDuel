@@ -29,6 +29,14 @@ class GameEngine {
 
   Function(int)? onNewHighScoreEvent;
 
+  //Variável para controlar o modo debug
+  bool showHitboxes = false; 
+
+  // Método para alternar o modo debug
+  void toggleDebugMode() {
+    showHitboxes = !showHitboxes;
+  }
+
   // Reiniciar
   void reset() {
     shipY = 0;
@@ -80,11 +88,11 @@ class GameEngine {
     shipY += shipVelocity * 0.005;
 
     // Limites de tela
-    if (shipY < -1.0) {
-      shipY = -1.0;
+    if (shipY < -0.9) {
+      shipY = -0.9;
       shipVelocity = 0;
-    } else if (shipY > 1.0) {
-      shipY = 1.0;
+    } else if (shipY > 0.9) {
+      shipY = 0.9;
       shipVelocity = 0;
     }
   }
