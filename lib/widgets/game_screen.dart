@@ -222,6 +222,7 @@ class GameScreenLCD extends StatelessWidget {
                 }),
 
                 // --- UI (Placar, Vidas, Textos) ---
+                 if (gameStarted)
                 Positioned(
                   top: 10, right: 10, 
                   child: Text("${engine.score}", style: AppStyles.retro(size: 24))
