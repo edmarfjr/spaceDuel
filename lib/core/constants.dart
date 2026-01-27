@@ -15,6 +15,9 @@ class GameConfig {
   static const double enemyWidth = 0.25;
   static const double enemyHeight = 0.25;
   static const double enemySpeed = 0.015; // Velocidade vertical do inimigo
+
+  static const double powerUpWidth = 0.15;
+  static const double powerUpHeight = 0.15;
   
   // Reutilizamos o "Meteor" como bala, mas agora ele é um tiro menor
   static const double meteorSize = 0.04;

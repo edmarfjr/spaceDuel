@@ -52,3 +52,18 @@ class Particle {
     this.life = 20 // Dura 20 frames (aprox 0.3 segundos)
   });
 }
+
+enum PowerUpType {
+  life,
+  speedBoost,
+  weaponUpgrade,
+}
+
+class PowerUp {
+  double x;
+  double y;
+  double vy = 0.005;
+  bool isCollected = false;
+  PowerUpType type;
+  PowerUp({required this.x, required this.y, required this.type});
+}

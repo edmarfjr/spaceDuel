@@ -37,7 +37,7 @@ class ControlPad extends StatelessWidget {
             //onTapDown: (_) { onStart(); onJet(true); _vibrate();},
             //onTapUp: (_) => onJet(false),
             //onTapCancel: () => onJet(false),
-            child: _buildButton(size: 80, color: AppColors.btnBlack, icon: Icons.unfold_more),
+            child: _buildButton(size: 120, color: AppColors.btnBlack, icon: Icons.unfold_more),
           ),
           
           // --- ÁREA CENTRAL (SELECT / START) ---
@@ -48,7 +48,7 @@ class ControlPad extends StatelessWidget {
                  children: [
                    // Select (Decorativo)
                    //_buildPillButton(label: "SELECT", onTap: () {}),
-                   const SizedBox(width: 15),
+                   const SizedBox(width: 20),
                    // Start (Pause / Play)
                    _buildPillButton(label: "START", onTap: onPause),
                  ],
@@ -64,7 +64,7 @@ class ControlPad extends StatelessWidget {
               onFire();
               _vibrate();
             },
-            child: _buildButton(size: 80, color: AppColors.btnRed, icon: Icons.gps_fixed),
+            child: _buildButton(size: 120, color: AppColors.btnRed, icon: Icons.gps_fixed),
           ),
         ],
       ),

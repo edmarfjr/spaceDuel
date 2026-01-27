@@ -91,6 +91,20 @@ class GameScreenLCD extends StatelessWidget {
               }
             }
 
+            //DEFINIÇÃO DOS ÍCONES DO POWERUP ---
+            IconData getPowerUpIcon() {
+              switch (engine.powerUp.type) {
+                case PowerUpType.life: 
+                  return Icons.favorite; // Coração
+                case PowerUpType.speedBoost: 
+                  return Icons.speed; // Velocidade
+                case PowerUpType.weaponUpgrade: 
+                  return Icons.stars; // Arma
+                default: 
+                  return Icons.question_mark; // Pergunta (fallback)
+              }
+            }
+
             return Stack(
               children: [
                 // 1. NAVE
@@ -121,6 +135,18 @@ class GameScreenLCD extends StatelessWidget {
                     child: const Center(child: Icon(Icons.close, size: 10, color: Colors.black12)), // Detalhe visual (X)
                   ),
                 )),
+                //powerup
+               if (gameStarted) // Só mostra se o jogo começou
+                  positionObject(
+                    x: engine.powerUp.x,
+                    y: engine.powerUp.y,
+                    w: GameConfig.powerUpWidth,
+                    h: GameConfig.powerUpHeight,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: Icon(getPowerUpIcon(), color: AppColors.pixel),
+                    ),
+                  ),
                 //inimigo
                if (gameStarted) // Só mostra se o jogo começou
                   positionObject(
@@ -154,7 +180,7 @@ class GameScreenLCD extends StatelessWidget {
                         alignment: Alignment.centerLeft,
                         // Calcula % de vida
                         widthFactor: (engine.enemy.life / engine.enemy.lifeMax).clamp(0.0, 1.0),
-                        child: Container(color: Colors.red),
+                        child: Container(color: AppColors.pixel),
                       ),
                     ),
                   ),

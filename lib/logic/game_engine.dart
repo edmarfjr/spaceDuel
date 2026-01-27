@@ -6,12 +6,13 @@ import '../core/constants.dart';
 class GameEngine {
   // Estado
   double shipY = 0;
-  double shipVelocity = 0.01;
+  double shipVelocity = 0.008;
   int shipDir = 1; // 1 = para cima, -1 = para baixo
   int score = 0;
   int highScore = 0;
   int lives = 0;
-  bool isJetActive = false;
+  int shootTime = 120;
+  int _shootTimer = 0;
 
   static const bool enableSound = false;
 
@@ -20,6 +21,8 @@ class GameEngine {
   bool get isInvulnerable => _invulnerableTimer > 0;
 
   late Enemy enemy;
+
+  late PowerUp powerUp;
 
   List<GameObj> enemyBlts = [];
   List<GameObj> bullets = [];
@@ -48,7 +51,10 @@ class GameEngine {
     shipDir = 1;
     score = 0;
     lives = GameConfig.initialLives;
+    shootTime = 120;
     _invulnerableTimer = 0;
+
+    _spawnPowerUp();
 
     enemy = Enemy(
         x: 0.8,
@@ -83,8 +89,19 @@ class GameEngine {
       lifeMax: newHp,
       type: selectedType,
       // Opcional: Aumentar velocidade vy com o nível
-      vy: 0.015 + (level * 0.002),
+      vy: 0.006 + (level * 0.001),
       burstCount: nRajada
+    );
+  }
+
+  void _spawnPowerUp() {
+    List<PowerUpType> powerUpTypes = PowerUpType.values;
+    PowerUpType selectedType = powerUpTypes[Random().nextInt(powerUpTypes.length)];
+
+    powerUp = PowerUp(
+      x: 0.8, 
+      y: 0.0,
+      type: selectedType
     );
   }
 
@@ -103,6 +120,10 @@ class GameEngine {
 
     // 3. Novo Inimigo
     _spawnEnemy();
+
+    //if(level>1){
+      _spawnPowerUp();
+    //}
   }
 
   void _generateObstacles() {
@@ -125,12 +146,10 @@ class GameEngine {
   bool update() {
     _updateShip();
     _updateEnemy();
+    _updatePowerUp();
     _updateEnemyBullets();
     _updateBullets();
     _updateParticles();
-    if (_invulnerableTimer > 0) {
-      _invulnerableTimer--;
-    }
 
     enemyBlts.removeWhere((m) => m.isDead);
     bullets.removeWhere((b) => b.isDead);
@@ -143,11 +162,23 @@ class GameEngine {
   }
 
   void fire() {
-    bullets.add(GameObj(x: -0.8, y: shipY, vx: 0.05, vy: 0));
+    if (_shootTimer > 0) return; // Espera o cooldown
+    bullets.add(GameObj(x: -0.8, y: shipY, vx: 0.025, vy: 0));
+    _shootTimer = shootTime; // Cooldown de 120 frames (2 segundos a 60fps)
     if (enableSound) onShootEvent?.call();
   }
 
-  // --- Lógica Interna ---
+   void _updatePowerUp() {
+      // 1. Movimento Vertical (Bounce)
+      powerUp.y += powerUp.vy;
+      
+      // Se bateu em cima ou em baixo, inverte a direção
+      if (powerUp.y < -0.9 || powerUp.y > 0.9) {
+        powerUp.vy = -powerUp.vy;
+        // Correção de posição para não ficar preso na parede
+        powerUp.y = powerUp.y.clamp(-0.9, 0.9);
+      }
+   }
   void _updateEnemy() {
       // 1. Movimento Vertical (Bounce)
       enemy.y += enemy.vy;
@@ -197,7 +228,7 @@ class GameEngine {
     double dx = -0.8 - enemy.x;
     double dy = shipY - enemy.y;
     double distance = sqrt(dx*dx + dy*dy);
-    double speed = 0.025;
+    double speed = 0.015;
 
     enemyBlts.add(GameObj(
       x: enemy.x - 0.1,
@@ -219,6 +250,12 @@ class GameEngine {
     } else if (shipY > 0.9) {
       shipDir = -1;
     }
+    if (_invulnerableTimer > 0) {
+      _invulnerableTimer--;
+    }
+    if (_shootTimer > 0) {
+      _shootTimer--;
+    }
   }
 
   void _updateEnemyBullets() {
@@ -239,13 +276,13 @@ class GameEngine {
 
         // Cria 3 fragmentos em leque
         // 1. Meio (continua a trajetória original)
-        newFragments.add(GameObj(x: b.x, y: b.y, vx: b.vx * 1.2, vy: b.vy));
+        newFragments.add(GameObj(x: b.x, y: b.y, vx: b.vx * 1, vy: b.vy));
         
         // 2. Cima (Desvia um pouco o vy para cima)
-        newFragments.add(GameObj(x: b.x, y: b.y, vx: b.vx * 1.1, vy: b.vy - 0.015));
+        newFragments.add(GameObj(x: b.x, y: b.y, vx: b.vx * 1, vy: b.vy - 0.015));
 
         // 3. Baixo (Desvia um pouco o vy para baixo)
-        newFragments.add(GameObj(x: b.x, y: b.y, vx: b.vx * 1.1, vy: b.vy + 0.015));
+        newFragments.add(GameObj(x: b.x, y: b.y, vx: b.vx * 1, vy: b.vy + 0.015));
         
         // Efeito visual
         _createExplosion(b.x, b.y);
@@ -319,7 +356,6 @@ class GameEngine {
       }
     }
     
-
     for (var eb in enemyBlts) {
       if (eb.isDead) continue; 
 
@@ -356,6 +392,30 @@ class GameEngine {
           bullet.x, bullet.y, GameConfig.bulletWidth, GameConfig.bulletHeight,
           enemy.x, enemy.y, GameConfig.enemyWidth, GameConfig.enemyHeight
         );
+
+        bool hitPup = checkOverlap(
+          bullet.x, bullet.y, GameConfig.bulletWidth, GameConfig.bulletHeight,
+          powerUp.x, powerUp.y, GameConfig.powerUpWidth, GameConfig.powerUpHeight
+        );
+
+        if (hitPup) {
+          // Aplica o efeito do PowerUp
+          switch (powerUp.type) {
+            case PowerUpType.life:
+              lives += 1;
+              break;
+            case PowerUpType.speedBoost:
+              shipVelocity +=  0.001; 
+              break;
+            case PowerUpType.weaponUpgrade:
+              shootTime = max(30, shootTime - 30); // Reduz o tempo de tiro, mínimo 30 frames
+              break;
+          }
+          _createExplosion(powerUp.x, powerUp.y);
+          powerUp.x = 2.0; // Remove o powerup da tela
+          bullet.isDead = true;
+          break;
+        }
 
         if (hitBullet) {
           _createExplosion(enemy.x, enemy.y);
