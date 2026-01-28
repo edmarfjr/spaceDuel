@@ -21,7 +21,7 @@ class GameScreenLCD extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 40, 20, 10),
+      margin: const EdgeInsets.fromLTRB(20, 40, 20, 80),
       decoration: BoxDecoration(
         color: AppColors.lcd,
         border: Border.all(color: Colors.black, width: 3),
@@ -162,7 +162,7 @@ class GameScreenLCD extends StatelessWidget {
                   ),
                 )),
                 //powerup
-               if (gameStarted) // Só mostra se o jogo começou
+               if (gameStarted && (engine.powerUp.timer > 300 || DateTime.now().millisecondsSinceEpoch % 100 < 50)) // Só mostra se o jogo começou
                   positionObject(
                     x: engine.powerUp.x,
                     y: engine.powerUp.y,
@@ -278,7 +278,7 @@ class GameScreenLCD extends StatelessWidget {
                   ),
                 ),
 
-                if (!gameStarted) 
+                if (!gameStarted && !gameOver) 
                   Center(child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [

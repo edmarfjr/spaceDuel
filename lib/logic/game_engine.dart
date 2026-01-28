@@ -192,9 +192,17 @@ class GameEngine {
         // Correção de posição para não ficar preso na parede
         powerUp.y = powerUp.y.clamp(-0.9, 0.9);
       }
+      // 2. Timer de vida
+      powerUp.timer--;
+      if (powerUp.timer <= 0) {
+        _enemyFire(x: powerUp.x - 0.1, y: powerUp.y, isFragmenting: false);
+        powerUp.isCollected = true; // Remove o powerup da tela
+        powerUp.x = 2.0;
+      }
+
     } else {
-        powerUp.timer--;
-        if (powerUp.timer <= 0) {
+        powerUp.collectedTimer--;
+        if (powerUp.collectedTimer <= 0) {
           //powerUp.isCollected = false;
           powerUp.x = 2.0; // Remove o powerup da tela
         }
@@ -216,14 +224,14 @@ class GameEngine {
       switch (enemy.type) {
       case EnemyType.padrao:
         if (enemy.shootTimer > 60) { // 1 tiro por segundo
-          _enemyFire(isFragmenting: false);
+          _enemyFire(x: enemy.x - 0.1, y: enemy.y, isFragmenting: false);
           enemy.shootTimer = 0;
         }
         break;
 
       case EnemyType.fragmenta:
         if (enemy.shootTimer > 90) { // Tiro mais lento (1.5s)
-          _enemyFire(isFragmenting: true);
+          _enemyFire(x: enemy.x - 0.1, y: enemy.y, isFragmenting: true);
           enemy.shootTimer = 0;
         }
         break;
@@ -231,7 +239,7 @@ class GameEngine {
       case EnemyType.rajada:
         // Lógica de Rajada
         if (enemy.shootTimer > 40) { // Intervalo entre rajadas
-           _enemyFire(isFragmenting: false);
+           _enemyFire(x: enemy.x - 0.1, y: enemy.y, isFragmenting: false);
            enemy.burstCount++;
            
            if (enemy.burstCount < 3) {
@@ -245,15 +253,15 @@ class GameEngine {
     }
   }
 
-  void _enemyFire({required bool isFragmenting}) {
+  void _enemyFire({required double x,required double y,required bool isFragmenting}) {
     double dx = -0.8 - enemy.x;
     double dy = shipY - enemy.y;
     double distance = sqrt(dx*dx + dy*dy);
     double speed = 0.015;
 
     enemyBlts.add(GameObj(
-      x: enemy.x - 0.1,
-      y: enemy.y,
+      x: x,
+      y: y,
       vx: (dx / distance) * speed,
       vy: 0, // (dy / distance) * speed,
       canSplit: isFragmenting, // Define se vai fragmentar

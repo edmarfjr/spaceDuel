@@ -64,7 +64,8 @@ class PowerUp {
   double y;
   double vy = 0.005;
   bool isCollected = false;
-  int timer = 120;
+  int collectedTimer = 120;
+  int timer = 1800; // Dura 30 segundos se não coletado
   PowerUpType type;
   String message;
   PowerUp({required this.x, required this.y, required this.type, required this.message});

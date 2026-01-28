@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class GameConfig {
   static const int fps = 60;
   static const int initialLives = 3; 
-  static const int invulnerabilityFrames = 120;
+  static const int invulnerabilityFrames = 60;
 
   static const double shipWidth = 0.2;
   static const double shipHeight = 0.1;
