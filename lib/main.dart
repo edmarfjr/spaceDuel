@@ -1,8 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart'; // <--- IMPORTANTE: Necessário para o Ticker
 
-// Importações dos nossos módulos
+// Importações dos seus módulos
 import 'core/constants.dart';
 import 'logic/game_engine.dart';
 import 'widgets/game_screen.dart';
@@ -11,6 +11,10 @@ import 'widgets/control_pad.dart';
 import 'core/storage_manager.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Trava a tela em pé e esconde a barra de status
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   runApp(const SpaceConsoleApp());
 }
 
@@ -19,11 +23,13 @@ class SpaceConsoleApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'NaveBoy',
-      theme: ThemeData(primarySwatch: Colors.blueGrey),
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF202020),
+      ),
       home: const GamePage(),
     );
   }
@@ -36,11 +42,14 @@ class GamePage extends StatefulWidget {
   State<GamePage> createState() => _GamePageState();
 }
 
-class _GamePageState extends State<GamePage> {
-  final GameEngine _engine = GameEngine(); // Instância da lógica
+// "with TickerProviderStateMixin" é o segredo para animações suaves (60FPS)
+class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
+  final GameEngine _engine = GameEngine();
   final SoundManager _soundManager = SoundManager();
   final StorageManager _storageManager = StorageManager();
-  Timer? _gameLoopTimer;
+  
+  late Ticker _ticker; // Substitui o Timer para melhor performance
+
   bool _gameStarted = false;
   bool _gameOver = false;
   bool _isPaused = false;
@@ -50,12 +59,38 @@ class _GamePageState extends State<GamePage> {
   @override
   void initState() {
     super.initState();
-    _soundManager.init(); // Inicializa o som
+    
+    // 1. Inicializa Som e Score
+    _soundManager.init();
     _loadHighScore();
-    // --- CONEXÃO: LIGA OS FIOS ENTRE ENGINE E SOM ---
-    // Quando a engine disser "Tiro", o SoundManager toca o tiro.
+
+    // 2. CONEXÃO DE EVENTOS (Lógica -> Som/Save)
     _engine.onShootEvent = _soundManager.playShoot;
     _engine.onExplosionEvent = _soundManager.playExplosion;
+    
+    // FALTAVA ISSO: Salvar o score quando a engine avisar
+    _engine.onNewHighScoreEvent = (int newRecord) {
+      _storageManager.saveHighScore(newRecord);
+    };
+
+    // 3. Configura o Game Loop (Ticker)
+    _ticker = createTicker((elapsed) {
+      if (_gameStarted && !_gameOver && !_isPaused) {
+        // Roda a matemática do jogo
+        bool playerDied = _engine.update();
+        
+        if (playerDied) {
+          setState(() {
+            _gameOver = true;
+            _gameStarted = false;
+          });
+        } else {
+          // Redesenha a tela (atualiza posições e a barra de cooldown)
+          setState(() {}); 
+        }
+      }
+    });
+    _ticker.start();
   }
 
   void _loadHighScore() async {
@@ -66,26 +101,13 @@ class _GamePageState extends State<GamePage> {
   }
 
   void _startGame() {
-    if (_gameStarted && !_gameOver) return; // Jogo já rodando
+    if (_gameStarted && !_gameOver) return;
 
     setState(() {
       _gameStarted = true;
       _gameOver = false;
       _engine.reset();
-    });
-
-    _gameLoopTimer?.cancel();
-    _gameLoopTimer = Timer.periodic(const Duration(milliseconds: 1000 ~/ GameConfig.fps), (timer) {
-      if (!_isPaused) {
-        setState(() {
-          // Pede para a Engine calcular o próximo frame
-          bool collision = _engine.update();
-          if (collision) {
-            _gameOver = true;
-            _gameLoopTimer?.cancel();
-          }
-        });
-      }
+      _isPaused = false;
     });
   }
 
@@ -99,7 +121,7 @@ class _GamePageState extends State<GamePage> {
 
   @override
   void dispose() {
-    _gameLoopTimer?.cancel();
+    _ticker.dispose(); // Para o relógio ao fechar
     _soundManager.dispose();
     super.dispose();
   }
@@ -108,42 +130,49 @@ class _GamePageState extends State<GamePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.body,
-      body: Column(
-        children: [
-          // Tela LCD
-          Expanded(
-            flex: 2,
-            child: GameScreenLCD(
-              engine: _engine, 
-              gameStarted: _gameStarted, 
-              gameOver: _gameOver,
-              isPaused: _isPaused,
+      body: SafeArea( // Evita que o jogo fique embaixo da câmera frontal (notch)
+        child: Column(
+          children: [
+            // Tela LCD (Onde o jogo acontece)
+            Expanded(
+              flex: 5, // Dá mais espaço para a tela
+              child: GameScreenLCD(
+                engine: _engine, 
+                gameStarted: _gameStarted, 
+                gameOver: _gameOver,
+                isPaused: _isPaused,
+              ),
             ),
-          ),
-          
-          // Logo
-          GestureDetector(
-            onTap: () {
-              _debugTapCount++;
-              if (_debugTapCount >= 3) {
-                setState(() {
-                  _engine.toggleDebugMode(); // Ativa/Desativa as hitboxes
-                  debugPrint("Debug Mode: ${_engine.showHitboxes}");
-                  _debugTapCount = 0; // Reseta o contador
-                });
-              }
-            },
-            child: const Text("SpaceBoy", 
-              style: TextStyle(
-                color: Color(0xFF303080), 
-                fontWeight: FontWeight.bold, 
-                fontStyle: FontStyle.italic,
-                fontSize: 24
-              )
+            
+            // Logo "NaveBoy" com Debug Secreto
+            GestureDetector(
+              onTap: () {
+                _debugTapCount++;
+                if (_debugTapCount >= 3) {
+                  setState(() {
+                    _engine.toggleDebugMode();
+                    _debugTapCount = 0;
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Debug Mode: ${_engine.showHitboxes}"), duration: const Duration(seconds: 1)),
+                  );
+                }
+              },
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text("SpaceBoy", 
+                  style: TextStyle(
+                    color: Color(0xFF303080), 
+                    fontWeight: FontWeight.bold, 
+                    fontStyle: FontStyle.italic,
+                    fontFamily: 'Courier', // Fonte mais retro
+                    fontSize: 28
+                  )
+                ),
+              ),
             ),
-          ),
 
-          // Controles
+            // Controles
           Expanded(
             flex: 1,
             child: ControlPad(
@@ -155,7 +184,8 @@ class _GamePageState extends State<GamePage> {
               },
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

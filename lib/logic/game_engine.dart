@@ -12,7 +12,7 @@ class GameEngine {
   int highScore = 0;
   int lives = 0;
   int shootTime = 120;
-  int _shootTimer = 0;
+  int shootTimer = 0;
 
   static const bool enableSound = false;
 
@@ -89,7 +89,7 @@ class GameEngine {
       lifeMax: newHp,
       type: selectedType,
       // Opcional: Aumentar velocidade vy com o nível
-      vy: 0.006 + (level * 0.001),
+      vy: GameConfig.enemySpeed + (level * 0.001),
       burstCount: nRajada
     );
   }
@@ -97,11 +97,23 @@ class GameEngine {
   void _spawnPowerUp() {
     List<PowerUpType> powerUpTypes = PowerUpType.values;
     PowerUpType selectedType = powerUpTypes[Random().nextInt(powerUpTypes.length)];
-
+    String message = "";
+    switch (selectedType) {
+      case PowerUpType.life:
+        message = "+1 Vida!";
+        break;
+      case PowerUpType.speedBoost:
+        message = "Velocidade +!";
+        break;
+      case PowerUpType.weaponUpgrade:
+        message = "Tiro Rápido!";
+        break;
+    }
     powerUp = PowerUp(
       x: 0.8, 
       y: 0.0,
-      type: selectedType
+      type: selectedType,
+      message: message
     );
   }
 
@@ -162,13 +174,15 @@ class GameEngine {
   }
 
   void fire() {
-    if (_shootTimer > 0) return; // Espera o cooldown
+    if (shootTimer > 0) return; // Espera o cooldown
     bullets.add(GameObj(x: -0.8, y: shipY, vx: 0.025, vy: 0));
-    _shootTimer = shootTime; // Cooldown de 120 frames (2 segundos a 60fps)
+    shootTimer = shootTime; // Cooldown de 120 frames (2 segundos a 60fps)
     if (enableSound) onShootEvent?.call();
   }
 
    void _updatePowerUp() {
+
+    if (powerUp.isCollected==false) {
       // 1. Movimento Vertical (Bounce)
       powerUp.y += powerUp.vy;
       
@@ -177,6 +191,13 @@ class GameEngine {
         powerUp.vy = -powerUp.vy;
         // Correção de posição para não ficar preso na parede
         powerUp.y = powerUp.y.clamp(-0.9, 0.9);
+      }
+    } else {
+        powerUp.timer--;
+        if (powerUp.timer <= 0) {
+          //powerUp.isCollected = false;
+          powerUp.x = 2.0; // Remove o powerup da tela
+        }
       }
    }
   void _updateEnemy() {
@@ -253,8 +274,8 @@ class GameEngine {
     if (_invulnerableTimer > 0) {
       _invulnerableTimer--;
     }
-    if (_shootTimer > 0) {
-      _shootTimer--;
+    if (shootTimer > 0) {
+      shootTimer--;
     }
   }
 
@@ -412,7 +433,7 @@ class GameEngine {
               break;
           }
           _createExplosion(powerUp.x, powerUp.y);
-          powerUp.x = 2.0; // Remove o powerup da tela
+          powerUp.isCollected = true; // Remove o powerup da tela
           bullet.isDead = true;
           break;
         }

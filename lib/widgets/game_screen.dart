@@ -46,6 +46,7 @@ class GameScreenLCD extends StatelessWidget {
               required double w,
               required double h,
               required Widget child,
+              double visualScale = 2.5,
             }) {
               // Cálculos de pixel (Matemática de Coordenadas)
               final double pixelW = (w / 2.0) * screenW;
@@ -56,23 +57,25 @@ class GameScreenLCD extends StatelessWidget {
               final double top = centerY - (pixelH / 2);
 
               return Positioned(
-                left: left,
-                top: top,
-                width: pixelW,
-                height: pixelH,
+                left: left, top: top, width: pixelW, height: pixelH,
                 child: Stack(
-                  fit: StackFit.expand, // Manda o filho preencher todo o espaço da hitbox
+                  clipBehavior: Clip.none, // Permite que o ícone "vaze" para fora da hitbox
+                  alignment: Alignment.center,
                   children: [
-                    // 1. O Desenho Real
-                    // (Removemos o FittedBox daqui para não sumir com os containers)
-                    child,
-                    
-                    // 2. A Borda de Debug (Se ativada)
-                    if (engine.showHitboxes)
+                    // 1. O DESENHO (Visualmente Aumentado)
+                    // Usamos o Transform.scale para aumentar o ícone sem mexer na posição lógica
+                    Transform.scale(
+                      scale: visualScale, 
+                      child: child,
+                    ),
+
+                    // 2. A HITBOX DE DEBUG (Tamanho Real Físico)
+                    // Ela continua desenhando exatamente o tamanho pixelW / pixelH
+                    if (engine.showHitboxes) 
                       Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white, width: 1),
-                        ),
+                          border: Border.all(color: Colors.white, width: 1)
+                        )
                       ),
                   ],
                 ),
@@ -97,7 +100,7 @@ class GameScreenLCD extends StatelessWidget {
                 case PowerUpType.life: 
                   return Icons.favorite; // Coração
                 case PowerUpType.speedBoost: 
-                  return Icons.speed; // Velocidade
+                  return Icons.double_arrow; // Velocidade
                 case PowerUpType.weaponUpgrade: 
                   return Icons.stars; // Arma
                 default: 
@@ -113,8 +116,8 @@ class GameScreenLCD extends StatelessWidget {
                   positionObject(
                     x: -0.8, 
                     y: engine.shipY, 
-                    w: GameConfig.shipWidth, 
-                    h: GameConfig.shipHeight, 
+                    w: GameConfig.shipWidth , 
+                    h: GameConfig.shipHeight , 
                     child: FittedBox( // <--- FittedBox SÓ AQUI
                       fit: BoxFit.contain,
                       child: Transform.rotate(
@@ -123,9 +126,32 @@ class GameScreenLCD extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (engine.shootTimer > 0)
+                  Positioned(
+                    // Posiciona um pouco à direita da nave (-0.65 no eixo X)
+                    left: ((-0.65 + 1) / 2) * screenW, 
+                    // Acompanha a altura da nave
+                    top: ((engine.shipY + 1) / 2) * screenH - 15, // -15 para centralizar verticalmente
+                    child: Container(
+                      width: 4,     // Barra fina vertical
+                      height: 30,   // Altura total
+                      decoration: BoxDecoration(
+                        color: Colors.black26, // Fundo escuro da barra
+                        borderRadius: BorderRadius.circular(2),
+                        border: Border.all(color: Colors.white30, width: 0.5)
+                      ),
+                      // FractionallySizedBox permite preencher % do pai
+                      child: FractionallySizedBox(
+                        alignment: Alignment.bottomCenter, // Esvazia de cima para baixo
+                        heightFactor: engine.shootTimer / engine.shootTime, // % de preenchimento
+                        child: Container(color: AppColors.pixel), // A cor Ciano
+                      ),
+                    ),
+                  ),
                   //obstaculos
                   ...engine.obstaculos.map((obs) => positionObject(
                   x: obs.x, y: obs.y, w: GameConfig.obstacleSize, h: GameConfig.obstacleSize,
+                  visualScale: 1,
                   child: Container(
                     decoration:const BoxDecoration(
                       color: AppColors.obstacle
@@ -142,7 +168,15 @@ class GameScreenLCD extends StatelessWidget {
                     y: engine.powerUp.y,
                     w: GameConfig.powerUpWidth,
                     h: GameConfig.powerUpHeight,
-                    child: FittedBox(
+                    child: engine.powerUp.isCollected 
+                    ? FittedBox(
+                        fit: BoxFit.contain,
+                        child: Text(
+                          engine.powerUp.message, 
+                          style: AppStyles.retro(size: 16).copyWith(color: AppColors.pixel) 
+                        ),
+                      )
+                    : FittedBox(
                       fit: BoxFit.contain,
                       child: Icon(getPowerUpIcon(), color: AppColors.pixel),
                     ),
@@ -191,6 +225,7 @@ class GameScreenLCD extends StatelessWidget {
                   y: m.y, 
                   w: GameConfig.meteorSize, 
                   h: GameConfig.meteorSize, 
+                  visualScale: 1,
                   child: Container(
                     decoration: const BoxDecoration(
                       color: Color(0xFF306230), 
@@ -205,6 +240,7 @@ class GameScreenLCD extends StatelessWidget {
                   y: b.y, 
                   w: GameConfig.bulletWidth, 
                   h: GameConfig.bulletHeight, 
+                  visualScale: 1,
                   child: Container(color: AppColors.pixel),
                 )),
 

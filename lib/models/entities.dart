@@ -64,6 +64,8 @@ class PowerUp {
   double y;
   double vy = 0.005;
   bool isCollected = false;
+  int timer = 120;
   PowerUpType type;
-  PowerUp({required this.x, required this.y, required this.type});
+  String message;
+  PowerUp({required this.x, required this.y, required this.type, required this.message});
 }

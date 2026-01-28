@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 
 class GameConfig {
-  static const double gravity = 0.2;
-  static const double jetThrust = -0.5;
-  static const double shipMaxVelocity = 15.0;
-  static const double gameSpeed = 3.0;
   static const int fps = 60;
   static const int initialLives = 3; 
   static const int invulnerabilityFrames = 120;
 
   static const double shipWidth = 0.2;
-  static const double shipHeight = 0.15;
+  static const double shipHeight = 0.1;
 
   static const double enemyWidth = 0.25;
   static const double enemyHeight = 0.25;
-  static const double enemySpeed = 0.015; // Velocidade vertical do inimigo
+  static const double enemySpeed = 0.006; // Velocidade vertical do inimigo
 
   static const double powerUpWidth = 0.15;
   static const double powerUpHeight = 0.15;
