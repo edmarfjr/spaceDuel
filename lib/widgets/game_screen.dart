@@ -179,7 +179,7 @@ class GameScreenLCD extends StatelessWidget {
                         fit: BoxFit.contain,
                         child: Text(
                           engine.powerUp.message, 
-                          style: AppStyles.retro(size: 16).copyWith(color: AppColors.pixel) 
+                          style: AppStyles.retro(size: 24).copyWith(color: AppColors.pixel) 
                         ),
                       )
                     : FittedBox(
@@ -188,7 +188,7 @@ class GameScreenLCD extends StatelessWidget {
                     ),
                   ),
                 //inimigo
-               if (gameStarted) // Só mostra se o jogo começou
+               if (gameStarted && engine.enemy.life > 0) // Só mostra se o jogo começou
                   positionObject(
                     x: engine.enemy.x,
                     y: engine.enemy.y,
@@ -203,7 +203,7 @@ class GameScreenLCD extends StatelessWidget {
                     ),
                   ),
                   // Desenhamos uma barra vermelha pequena em cima do inimigo
-                if (gameStarted)
+                if (gameStarted && engine.enemy.life > 0) 
                   Positioned(
                     // Posição baseada na tela: X do inimigo convertido, um pouco acima (Y - algo)
                     left: ((engine.enemy.x + 1) / 2) * screenW - 20, // Centralizado aprox
@@ -233,9 +233,9 @@ class GameScreenLCD extends StatelessWidget {
                   h: GameConfig.meteorSize, 
                   visualScale: 1,
                   child: Container(
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF306230), 
-                      shape: BoxShape.circle
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF306230), 
+                      shape: m.isHoming ? BoxShape.rectangle : BoxShape.circle,
                     ),
                   ),
                 )),
@@ -267,7 +267,12 @@ class GameScreenLCD extends StatelessWidget {
                  if (gameStarted)
                 Positioned(
                   top: 10, right: 10, 
-                  child: Text("${engine.score}", style: AppStyles.retro(size: 24))
+                  child: Text("score: ${engine.score}", style: AppStyles.retro(size: 24))
+                ),
+                if (engine.hit>0)
+                Positioned(
+                  top: 40, left: 10, 
+                  child: Text("hit streak: ${engine.hit}", style: AppStyles.retro(size: 24))
                 ),
                 if (gameStarted || gameOver)
                   Positioned(
@@ -303,6 +308,8 @@ class GameScreenLCD extends StatelessWidget {
                     Text("Score: ${engine.score}", style: AppStyles.retro(size: 20)),
                     if (engine.score >= engine.highScore && engine.score > 0)
                        Text("NEW RECORD!", style: AppStyles.retro(size: 15)),
+                    Text("Hit: ${engine.highHit}", style: AppStyles.retro(size: 20)),
+                    
                   ])),
                 
                 if (isPaused && !gameOver && gameStarted)

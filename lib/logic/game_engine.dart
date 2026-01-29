@@ -10,10 +10,13 @@ class GameEngine {
   int shipDir = 1; // 1 = para cima, -1 = para baixo
   int score = 0;
   int highScore = 0;
+  int hit = 0;
+  int highHit = 0;
   int lives = 0;
   int shootTime = 120;
   int shootTimer = 0;
   double bltSpeed = 0.025;
+  bool isLevelTransitioning = false;
 
   static const bool enableSound = false;
 
@@ -53,6 +56,7 @@ class GameEngine {
     score = 0;
     lives = GameConfig.initialLives;
     shootTime = 120;
+    bltSpeed = 0.025;
     _invulnerableTimer = 0;
 
     _spawnPowerUp();
@@ -72,8 +76,8 @@ class GameEngine {
   }
 
   void _spawnEnemy() {
-    // A cada nível, o inimigo ganha +3 de vida
-    int newHp = GameConfig.enemyBaseHp + ((level - 1) * 3);
+    // A cada nível, o inimigo ganha +2 de vida
+    int newHp = GameConfig.enemyBaseHp + ((level - 1) * 2);
     
     List<EnemyType> enemyTypes = EnemyType.values;
     EnemyType selectedType = enemyTypes[Random().nextInt(enemyTypes.length)];
@@ -158,10 +162,40 @@ class GameEngine {
       obstaculos.add(GameObj(x: randX, y: randY));
     }
   }
+  void _startLevelTransition() async {
+    isLevelTransitioning = true; // Pausa a lógica de combate
+
+    // Cria uma cópia da lista para podermos iterar e remover ao mesmo tempo
+    List<GameObj> targets = List.from(obstaculos);
+
+    for (var obs in targets) {
+      // Espera um pouquinho entre cada explosão (efeito cascata)
+      await Future.delayed(const Duration(milliseconds: 250));
+      
+      // Explode o obstáculo
+      _createExplosion(obs.x, obs.y);
+      if (enableSound) onExplosionEvent?.call();
+      
+      // Remove visualmente
+      obstaculos.remove(obs);
+    }
+
+    // Espera mais um pouco para o jogador apreciar a destruição
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Agora sim, vai para o próximo nível
+    _nextLevel();
+    isLevelTransitioning = false; // Libera o jogo
+  }
 
   // Atualizar Física (chamado a cada frame)
   // Retorna TRUE se houve colisão (Game Over)
   bool update() {
+    if (isLevelTransitioning) {
+      _updateShip();
+      _updateParticles();
+      return false; 
+    }
     _updateShip();
     _updateEnemy();
     _updatePowerUp();
@@ -169,7 +203,7 @@ class GameEngine {
     _updateBullets();
     _updateParticles();
 
-    enemyBlts.removeWhere((m) => m.isDead);
+    enemyBlts.removeWhere((m) => m.isDead );
     bullets.removeWhere((b) => b.isDead);
 
     return _checkCollisions();
@@ -215,6 +249,17 @@ class GameEngine {
       }
    }
   void _updateEnemy() {
+      if (enemy.life <= 0)
+      {
+       // if (enemy.deadTmr > 0){
+       //   enemy.deadTmr--;
+       //   powerUp.x = 2;
+         
+       // } else {
+       //   _nextLevel(); // <--- CHAMA A MUDANÇA DE FASE
+       // }
+         return;
+      }
       // 1. Movimento Vertical (Bounce)
       enemy.y += enemy.vy;
       
@@ -244,7 +289,7 @@ class GameEngine {
 
       case EnemyType.rajada:
         // Lógica de Rajada
-        if (enemy.shootTimer > 120) { // Intervalo entre rajadas
+        if (enemy.shootTimer > 40) { // Intervalo entre rajadas
            _enemyFire(x: enemy.x - 0.1, y: enemy.y, isFragmenting: false);
            enemy.burstCount++;
            
@@ -454,6 +499,10 @@ class GameEngine {
       if (bullet.isDead) continue;
       bullet.x += bullet.vx;
       bullet.y += bullet.vy;
+
+      if (bullet.x > 1.5){
+        hit = 0;
+      }
     }
     bullets.removeWhere((bullet) => bullet.x > 1.5);
   }
@@ -487,6 +536,7 @@ class GameEngine {
         if (checkOverlap(pBullet.x, pBullet.y, GameConfig.bulletWidth, GameConfig.bulletHeight,
                          obs.x, obs.y, GameConfig.obstacleSize, GameConfig.obstacleSize)) {
           pBullet.isDead = true; // Tiro morre
+          hit = 0;
           _createExplosion(pBullet.x, pBullet.y); // Efeito visual de batida
           // Obstáculo indestrutível, não faz nada com ele
           break;
@@ -551,6 +601,8 @@ class GameEngine {
 
         if (hitPup) {
           // Aplica o efeito do PowerUp
+          hit++;
+          if(highHit > hit) highHit = hit;
           switch (powerUp.type) {
             case PowerUpType.life:
               lives += 1;
@@ -572,6 +624,8 @@ class GameEngine {
         }
 
         if (hitBullet) {
+          hit++;
+          if(highHit > hit) highHit = hit;
           _createExplosion(enemy.x, enemy.y);
           if (enableSound) onExplosionEvent?.call();
           
@@ -585,8 +639,8 @@ class GameEngine {
             _createExplosion(enemy.x, enemy.y); // Explosão extra pela morte
             _createExplosion(enemy.x + 0.1, enemy.y + 0.1);
             _createExplosion(enemy.x - 0.1, enemy.y - 0.1);
+            _startLevelTransition();
             
-            _nextLevel(); // <--- CHAMA A MUDANÇA DE FASE
           }
           break;
         }

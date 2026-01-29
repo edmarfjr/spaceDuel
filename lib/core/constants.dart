@@ -30,7 +30,7 @@ class GameConfig {
   static const double bulletWidth = 0.05; 
   static const double bulletHeight = 0.02;
 
-  static const int enemyBaseHp = 5;
+  static const int enemyBaseHp = 2;
 }
 
 class AppColors {

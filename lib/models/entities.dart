@@ -46,6 +46,7 @@ class Enemy {
   double y;
   double vy;
   bool isDead = false;
+  int deadTmr = 120;
   int life;
   int lifeMax;
   EnemyType type;
