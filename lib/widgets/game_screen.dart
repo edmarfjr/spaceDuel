@@ -21,7 +21,7 @@ class GameScreenLCD extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 40, 20, 80),
+      margin: const EdgeInsets.fromLTRB(20, 40, 20, 30),
       decoration: BoxDecoration(
         color: AppColors.lcd,
         border: Border.all(color: Colors.black, width: 3),
@@ -89,6 +89,10 @@ class GameScreenLCD extends StatelessWidget {
                   return Icons.rocket; // Foguete pesado
                 case EnemyType.fragmenta: 
                   return Icons.change_history; // Triângulo/Stealth
+                case EnemyType.wave: 
+                  return Icons.blur_on;
+                case EnemyType.homing: 
+                  return Icons.gps_fixed;
                 default: 
                   return Icons.airplanemode_active; // Jato padrão
               }
@@ -103,6 +107,8 @@ class GameScreenLCD extends StatelessWidget {
                   return Icons.double_arrow; // Velocidade
                 case PowerUpType.weaponUpgrade: 
                   return Icons.stars; // Arma
+                case PowerUpType.bulletSpeed:
+                  return Icons.flash_on; // Velocidade da bala
                 default: 
                   return Icons.question_mark; // Pergunta (fallback)
               }

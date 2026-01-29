@@ -13,6 +13,7 @@ class GameEngine {
   int lives = 0;
   int shootTime = 120;
   int shootTimer = 0;
+  double bltSpeed = 0.025;
 
   static const bool enableSound = false;
 
@@ -60,7 +61,6 @@ class GameEngine {
         x: 0.8,
         y: 0.0,
         vy: GameConfig.enemySpeed,
-        life: 5,
         type: EnemyType.padrao,
         shootTimer: 100);
 
@@ -106,12 +106,18 @@ class GameEngine {
         message = "Velocidade +!";
         break;
       case PowerUpType.weaponUpgrade:
-        message = "Tiro Rápido!";
+        message = "Recarga Rápido!";
         break;
+      case PowerUpType.bulletSpeed:
+        message = "Bala Rápida!";
+        break;  
     }
+    int vyDirection = Random().nextBool() ? 1 : -1;
+    double vy = vyDirection * (0.003 + Random().nextDouble() * 0.002);
     powerUp = PowerUp(
       x: 0.8, 
-      y: 0.0,
+      y: 0.4,
+      vy: vy, 
       type: selectedType,
       message: message
     );
@@ -175,7 +181,7 @@ class GameEngine {
 
   void fire() {
     if (shootTimer > 0) return; // Espera o cooldown
-    bullets.add(GameObj(x: -0.8, y: shipY, vx: 0.025, vy: 0));
+    bullets.add(GameObj(x: -0.8, y: shipY, vx: bltSpeed, vy: 0));
     shootTimer = shootTime; // Cooldown de 120 frames (2 segundos a 60fps)
     if (enableSound) onShootEvent?.call();
   }
@@ -223,14 +229,14 @@ class GameEngine {
       enemy.shootTimer++;
       switch (enemy.type) {
       case EnemyType.padrao:
-        if (enemy.shootTimer > 60) { // 1 tiro por segundo
+        if (enemy.shootTimer > 120) { // 1 tiro por segundo
           _enemyFire(x: enemy.x - 0.1, y: enemy.y, isFragmenting: false);
           enemy.shootTimer = 0;
         }
         break;
 
       case EnemyType.fragmenta:
-        if (enemy.shootTimer > 90) { // Tiro mais lento (1.5s)
+        if (enemy.shootTimer > 180) { // Tiro mais lento (1.5s)
           _enemyFire(x: enemy.x - 0.1, y: enemy.y, isFragmenting: true);
           enemy.shootTimer = 0;
         }
@@ -238,7 +244,7 @@ class GameEngine {
 
       case EnemyType.rajada:
         // Lógica de Rajada
-        if (enemy.shootTimer > 40) { // Intervalo entre rajadas
+        if (enemy.shootTimer > 120) { // Intervalo entre rajadas
            _enemyFire(x: enemy.x - 0.1, y: enemy.y, isFragmenting: false);
            enemy.burstCount++;
            
@@ -250,6 +256,18 @@ class GameEngine {
            }
         }
         break;
+      case EnemyType.wave:
+        // Lógica de Rajada
+        if (enemy.shootTimer > 120) { // 1 tiro por segundo
+          _fireWavePattern();
+          enemy.shootTimer = 0;
+        }
+        break;
+      case EnemyType.homing:
+        if (enemy.shootTimer > 150) { // Tiro mais lento (2.5s)
+          _fireHomingMissile();
+          enemy.shootTimer = 0;
+        }
     }
   }
 
@@ -267,6 +285,48 @@ class GameEngine {
       canSplit: isFragmenting, // Define se vai fragmentar
     ));
     // Som opcional aqui
+  }
+
+  void _fireWavePattern() {
+    // Cria 2 projéteis idênticos, mas um invertido
+    // Eles descem reto (vy) mas oscilam no X
+    
+    // Projetil 1 (Normal)
+    enemyBlts.add(GameObj(
+      x: enemy.x, 
+      y: enemy.y, 
+      vx: -0.02, // Não usa VX linear, usa a onda
+      vy: 0, // Velocidade de descida
+      isWave: true,
+      initialY: enemy.y, // O centro da onda é onde o inimigo estava
+      waveInverted: false
+    ));
+
+    // Projetil 2 (Invertido/Espelhado)
+    enemyBlts.add(GameObj(
+      x: enemy.x, 
+      y: enemy.y, 
+      vx: -0.02,
+      vy: 0,
+      isWave: true,
+      initialY: enemy.y,
+      waveInverted: true // <--- O Segredo
+    ));
+    
+    // Som (opcional)
+  }
+
+  void _fireHomingMissile() {
+    // O tiro nasce com velocidade inicial para a esquerda
+    enemyBlts.add(GameObj(
+      x: enemy.x - 0.1, 
+      y: enemy.y,
+      vx: -GameConfig.homingSpeed, // Começa indo reto
+      vy: 0.0,
+      isHoming: true,
+      currentLife: 0,
+      maxLife: GameConfig.homingLifeTime, // Define quando ele morre
+    ));
   }
 
   void _updateShip() {
@@ -294,8 +354,70 @@ class GameEngine {
 
     for (var b in enemyBlts) {
       if (b.isDead) continue;
-      b.x += b.vx;
-      b.y += b.vy;
+
+      if (b.isHoming) {
+        // --- LÓGICA TELEGUIADA ---
+        
+        // 1. Envelhecimento: Se ficar velho demais, explode sozinho
+        b.currentLife++;
+        if (b.currentLife > b.maxLife) {
+          b.isDead = true;
+          _createExplosion(b.x, b.y); // Efeito visual ao expirar
+          continue;
+        }
+
+        // 2. Identificar o Alvo (Jogador está em X = -0.8)
+        double targetX = -0.8;
+        double targetY = shipY;
+
+        // 3. Vetor Desejado (Direção para o jogador)
+        double dx = targetX - b.x;
+        double dy = targetY - b.y;
+        
+        // Normaliza o vetor (transforma em tamanho 1)
+        double distance = sqrt(dx*dx + dy*dy);
+        if (distance > 0) {
+          dx /= distance;
+          dy /= distance;
+        }
+
+        // 4. Steering (Pilotagem Suave)
+        // Ajusta a velocidade atual (vx, vy) em direção ao vetor desejado (dx, dy)
+        // O 'homingTurnRate' define o quão fechada é a curva
+        b.vx += (dx * GameConfig.homingSpeed - b.vx) * GameConfig.homingTurnRate;
+        b.vy += (dy * GameConfig.homingSpeed - b.vy) * GameConfig.homingTurnRate;
+
+        // 5. Aplica o movimento
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // Opcional: Criar rastro de fumaça para mísseis
+        if (b.currentLife % 5 == 0) {
+           particles.add(Particle(x: b.x, y: b.y, vx: 0.01, vy: 0, life: 10));
+        }
+
+        } else if (b.isWave) {
+        // Lógica de Onda HORIZONTAL (Atira para a esquerda)
+        
+        // 1. Movimento Linear no X (Vai para a esquerda)
+        b.x += b.vx; 
+
+        // 2. Oscilação no Y (Sobe e Desce)
+        b.time += 1.0 / GameConfig.fps;
+        
+        double waveOffset = sin(b.time * GameConfig.waveFrequency) * GameConfig.waveAmplitude;
+        
+        if (b.waveInverted) {
+          b.y = b.initialY - waveOffset; // Espelho
+        } else {
+          b.y = b.initialY + waveOffset; // Normal
+        }
+
+      } else {
+        // Comportamento padrão (Linear simples)
+        b.x += b.vx;
+        b.y += b.vy;
+      }
 
       // LÓGICA DE FRAGMENTAÇÃO
       // Se for fragmentável, não tiver fragmentado, e passar do meio da tela (x < 0)
@@ -438,6 +560,9 @@ class GameEngine {
               break;
             case PowerUpType.weaponUpgrade:
               shootTime = max(30, shootTime - 30); // Reduz o tempo de tiro, mínimo 30 frames
+              break;
+            case PowerUpType.bulletSpeed:
+              bltSpeed += 0.005; // Aumenta a velocidade da bala
               break;
           }
           _createExplosion(powerUp.x, powerUp.y);

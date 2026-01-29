@@ -3,16 +3,42 @@ class GameObj {
   double y;
   double vx;
   double vy;
+
+  bool isWave;       // É um tiro de onda?
+  double initialY;   // O eixo central da onda
+  double time;       // Tempo de vida (para calcular o seno)
+  bool waveInverted; // Se true, faz a onda espelhada (seno negativo)
+  bool isHoming;
+  int currentLife; // Contador de vida
+  int maxLife;     // Vida máxima
+
+
   bool canSplit;
   bool hasSplit;
   bool isDead = false;
-  GameObj({required this.x, required this.y,  this.vx=0,  this.vy=0, this.canSplit = false, this.hasSplit = false});
+  GameObj({
+    required this.x,
+    required this.y,  
+    this.vx=0,  
+    this.vy=0, 
+    this.canSplit = false, 
+    this.hasSplit = false,
+    this.isWave = false,
+    this.initialY = 0,
+    this.time = 0,
+    this.waveInverted = false,
+    this.isHoming = false,
+    this.currentLife = 0,
+    this.maxLife = 0,
+  });
 }
 
 enum EnemyType { 
   padrao, 
   rajada, 
-  fragmenta 
+  fragmenta,
+  wave,
+  homing, 
 }
 
 class Enemy {
@@ -25,12 +51,13 @@ class Enemy {
   EnemyType type;
   int shootTimer;
   int burstCount;
+
   Enemy({
     required this.x,
     required this.y,
     required this.vy,
-    this.life = 5,
-    this.lifeMax = 5,
+    this.life = 2,
+    this.lifeMax = 2,
     this.type = EnemyType.padrao,
     this.shootTimer = 0,
     this.burstCount = 0,
@@ -57,16 +84,17 @@ enum PowerUpType {
   life,
   speedBoost,
   weaponUpgrade,
+  bulletSpeed,
 }
 
 class PowerUp {
   double x;
   double y;
-  double vy = 0.005;
+  double vy;
   bool isCollected = false;
   int collectedTimer = 120;
   int timer = 1800; // Dura 30 segundos se não coletado
   PowerUpType type;
   String message;
-  PowerUp({required this.x, required this.y, required this.type, required this.message});
+  PowerUp({required this.x, required this.y, required this.type, this.vy = 0.005, required this.message});
 }

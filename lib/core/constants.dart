@@ -11,6 +11,13 @@ class GameConfig {
   static const double enemyWidth = 0.25;
   static const double enemyHeight = 0.25;
   static const double enemySpeed = 0.006; // Velocidade vertical do inimigo
+  // Configuração da Onda
+  static const double waveAmplitude = 0.15; // Largura da onda (o quanto ela abre)
+  static const double waveFrequency = 5.0;  // Velocidade da oscilação
+  // Configuração do Teleguiado
+  static const double homingSpeed = 0.015; // Um pouco mais lento que o tiro normal
+  static const double homingTurnRate = 0.025; // 5% de correção de curso por frame (Agilidade)
+  static const int homingLifeTime = 180; // Vive por 3 segundos (60fps * 3)
 
   static const double powerUpWidth = 0.15;
   static const double powerUpHeight = 0.15;
