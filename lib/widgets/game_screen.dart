@@ -9,6 +9,7 @@ class GameScreenLCD extends StatelessWidget {
   final bool gameStarted;
   final bool gameOver;
   final bool isPaused;
+  final VoidCallback? onToggleSound;
 
   const GameScreenLCD({
     super.key,
@@ -16,6 +17,7 @@ class GameScreenLCD extends StatelessWidget {
     required this.gameStarted,
     required this.gameOver,
     required this.isPaused,
+    this.onToggleSound,
   });
 
   @override
@@ -272,13 +274,13 @@ class GameScreenLCD extends StatelessWidget {
                 if (engine.hit>0)
                 Positioned(
                   top: 40, left: 10, 
-                  child: Text("hit streak: ${engine.hit}", style: AppStyles.retro(size: 24))
+                  child: Text("hit: ${engine.hit}", style: AppStyles.retro(size: 24))
                 ),
-                if (gameStarted || gameOver)
-                  Positioned(
-                    top: 40, right: 10,
-                    child: Text("HI ${engine.highScore}", style: AppStyles.retro(size: 15))
-                  ),
+                //if (gameStarted || gameOver)
+                //  Positioned(
+                //    top: 40, right: 10,
+                //    child: Text("HI ${engine.highScore}", style: AppStyles.retro(size: 15))
+                //  ),
                 Positioned(
                   top: 10, left: 10,
                   child: Row(
@@ -305,15 +307,33 @@ class GameScreenLCD extends StatelessWidget {
                   Center(
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
                     Text("GAME OVER", style: AppStyles.retro()),
+                    Text("HighScore: ${engine.highScore}", style: AppStyles.retro(size: 20)),
                     Text("Score: ${engine.score}", style: AppStyles.retro(size: 20)),
                     if (engine.score >= engine.highScore && engine.score > 0)
                        Text("NEW RECORD!", style: AppStyles.retro(size: 15)),
-                    Text("Hit: ${engine.highHit}", style: AppStyles.retro(size: 20)),
+                    Text("Enemy beaten: ${engine.level-1}", style: AppStyles.retro(size: 20)),
+                    Text("Hit Streak: ${engine.highHit}", style: AppStyles.retro(size: 20)),
                     
                   ])),
                 
                 if (isPaused && !gameOver && gameStarted)
-                   Center(child: Text("PAUSED", style: AppStyles.retro())),
+                    Center(child: Text("PAUSED", style: AppStyles.retro())),
+                   // O Botão de Mute
+                   if (isPaused && !gameOver && gameStarted)
+                    Positioned(
+                      top:10,
+                      left:0,
+                      right:0,
+                      child: Center( child:GestureDetector(
+                      onTap: onToggleSound, // Chama a função passada pelo Main
+                      child: Icon(
+                              engine.enableSound ? Icons.volume_up : Icons.volume_off, 
+                              color: AppColors.pixel,
+                              size: 24
+                            ),
+                      ))
+                    ),
+                    
               ],
             );
           },

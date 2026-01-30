@@ -18,7 +18,7 @@ class GameEngine {
   double bltSpeed = 0.025;
   bool isLevelTransitioning = false;
 
-  static const bool enableSound = false;
+  bool enableSound = true;
 
   // Invencibilidade
   int _invulnerableTimer = 0; // Conta quantos frames faltam para acabar a imunidade
@@ -47,6 +47,10 @@ class GameEngine {
   // Método para alternar o modo debug
   void toggleDebugMode() {
     showHitboxes = !showHitboxes;
+  }
+
+  void toggleSound() {
+    enableSound = !enableSound;
   }
 
   // Reiniciar
@@ -321,7 +325,7 @@ class GameEngine {
     double dy = shipY - enemy.y;
     double distance = sqrt(dx*dx + dy*dy);
     double speed = 0.015;
-
+    
     enemyBlts.add(GameObj(
       x: x,
       y: y,
@@ -329,7 +333,7 @@ class GameEngine {
       vy: 0, // (dy / distance) * speed,
       canSplit: isFragmenting, // Define se vai fragmentar
     ));
-    // Som opcional aqui
+    if (enableSound) onShootEvent?.call();
   }
 
   void _fireWavePattern() {
@@ -358,7 +362,7 @@ class GameEngine {
       waveInverted: true // <--- O Segredo
     ));
     
-    // Som (opcional)
+    if (enableSound) onShootEvent?.call();
   }
 
   void _fireHomingMissile() {
@@ -372,6 +376,7 @@ class GameEngine {
       currentLife: 0,
       maxLife: GameConfig.homingLifeTime, // Define quando ele morre
     ));
+    if (enableSound) onShootEvent?.call();
   }
 
   void _updateShip() {

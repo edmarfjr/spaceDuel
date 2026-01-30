@@ -170,6 +170,11 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                 gameStarted: _gameStarted, 
                 gameOver: _gameOver,
                 isPaused: _isPaused,
+                onToggleSound: () {
+                  setState(() {
+                    _engine.toggleSound();
+                  });
+                },
               ),
             ),
             
