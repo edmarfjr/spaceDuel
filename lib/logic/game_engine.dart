@@ -576,7 +576,6 @@ class GameEngine {
           lives = max(0, lives - 1);
           _invulnerableTimer = GameConfig.invulnerabilityFrames;
           _createExplosion(-0.8, shipY);
-          if (enableSound) onExplosionEvent?.call();
           
           eb.isDead = true;
 
@@ -632,7 +631,6 @@ class GameEngine {
           hit++;
           if(highHit > hit) highHit = hit;
           _createExplosion(enemy.x, enemy.y);
-          if (enableSound) onExplosionEvent?.call();
           
           enemy.life -= 1;
           bullet.isDead = true;
@@ -654,6 +652,7 @@ class GameEngine {
   }
 
   void _createExplosion(double x, double y) {
+    if (enableSound) onExplosionEvent?.call();
     Random r = Random();
     for (int i = 0; i < 4; i++) {
       particles.add(Particle(

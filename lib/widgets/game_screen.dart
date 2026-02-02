@@ -166,11 +166,11 @@ class GameScreenLCD extends StatelessWidget {
                       //border: Border.all(color: AppColors.pixel, width: 2), // Borda para destacar
                       //borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Center(child: Icon(Icons.close, size: 10, color: Colors.black12)), // Detalhe visual (X)
+                    //child: const Center(child: Icon(Icons.close, size: 10, color: Color.fromARGB(255, 0, 0, 0))), // Detalhe visual (X)
                   ),
                 )),
                 //powerup
-               if (gameStarted && (engine.powerUp.timer > 300 || DateTime.now().millisecondsSinceEpoch % 100 < 50)) // Só mostra se o jogo começou
+               if (gameStarted && (engine.powerUp.isCollected || engine.powerUp.timer > 300 || DateTime.now().millisecondsSinceEpoch % 100 < 50)) // Só mostra se o jogo começou
                   positionObject(
                     x: engine.powerUp.x,
                     y: engine.powerUp.y,
