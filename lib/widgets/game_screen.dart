@@ -116,11 +116,20 @@ class GameScreenLCD extends StatelessWidget {
               }
             }
 
+            // Lista de ícones para os obstáculos (Construções)
+            final List<IconData> buildingIcons = [
+              Icons.domain,
+              Icons.location_city,
+              Icons.apartment,
+              Icons.store,
+              Icons.business,
+            ];
+
             return Stack(
               children: [
                 // 1. NAVE
                 // A Nave PRECISA de FittedBox porque é um Icon e queremos que ele escale
-                if (!engine.isInvulnerable || DateTime.now().millisecondsSinceEpoch % 100 < 50)
+                if (gameStarted && (!engine.isInvulnerable || DateTime.now().millisecondsSinceEpoch % 100 < 50))
                   positionObject(
                     x: -0.8, 
                     y: engine.shipY, 
@@ -157,18 +166,17 @@ class GameScreenLCD extends StatelessWidget {
                     ),
                   ),
                   //obstaculos
-                  ...engine.obstaculos.map((obs) => positionObject(
-                  x: obs.x, y: obs.y, w: GameConfig.obstacleSize, h: GameConfig.obstacleSize,
-                  visualScale: 1,
-                  child: Container(
-                    decoration:const BoxDecoration(
-                      color: AppColors.obstacle
-                      //border: Border.all(color: AppColors.pixel, width: 2), // Borda para destacar
-                      //borderRadius: BorderRadius.circular(4),
-                    ),
-                    //child: const Center(child: Icon(Icons.close, size: 10, color: Color.fromARGB(255, 0, 0, 0))), // Detalhe visual (X)
-                  ),
-                )),
+                  ...engine.obstaculos.map((obs) {
+                  // Escolhe um ícone baseado no "DNA" (hash) do objeto para não ficar mudando aleatoriamente
+                  final iconData = buildingIcons[obs.hashCode % buildingIcons.length];
+                  
+                  return positionObject(
+                    x: obs.x, y: obs.y, 
+                    w: GameConfig.obstacleSize, h: GameConfig.obstacleSize, 
+                    visualScale: 1.5, 
+                    child: Icon(iconData, color: AppColors.obstacle, size: 30) // Ícone de prédio
+                  );
+                }),
                 //powerup
                if (gameStarted && (engine.powerUp.isCollected || engine.powerUp.timer > 300 || DateTime.now().millisecondsSinceEpoch % 100 < 50)) // Só mostra se o jogo começou
                   positionObject(
@@ -268,7 +276,7 @@ class GameScreenLCD extends StatelessWidget {
                 // --- UI (Placar, Vidas, Textos) ---
                  if (gameStarted)
                 Positioned(
-                  top: 10, right: 10, 
+                  top: 5, right: 10, 
                   child: Text("score: ${engine.score}", style: AppStyles.retro(size: 24))
                 ),
                 if (engine.hit>0)

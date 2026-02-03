@@ -231,10 +231,10 @@ class GameEngine {
       powerUp.y += powerUp.vy;
       
       // Se bateu em cima ou em baixo, inverte a direção
-      if (powerUp.y < -0.9 || powerUp.y > 0.9) {
+      if (powerUp.y < -0.7 || powerUp.y > 0.9) {
         powerUp.vy = -powerUp.vy;
         // Correção de posição para não ficar preso na parede
-        powerUp.y = powerUp.y.clamp(-0.9, 0.9);
+        powerUp.y = powerUp.y.clamp(-0.7, 0.9);
       }
       // 2. Timer de vida
       powerUp.timer--;
@@ -268,7 +268,7 @@ class GameEngine {
       enemy.y += enemy.vy;
       
       // Se bateu em cima ou em baixo, inverte a direção
-      if (enemy.y < -0.9 || enemy.y > 0.9) {
+      if (enemy.y < -0.7 || enemy.y > 0.9) {
         enemy.vy = -enemy.vy;
         // Correção de posição para não ficar preso na parede
         enemy.y = enemy.y.clamp(-0.9, 0.9);
@@ -384,7 +384,7 @@ class GameEngine {
     shipY += shipVelocity * shipDir;
 
     // Limites de tela
-    if (shipY < -0.9) {
+    if (shipY < -0.8) {
       shipDir = 1;
     } else if (shipY > 0.9) {
       shipDir = -1;
@@ -606,7 +606,7 @@ class GameEngine {
         if (hitPup) {
           // Aplica o efeito do PowerUp
           hit++;
-          if(highHit > hit) highHit = hit;
+          if(hit > highHit) highHit = hit;
           switch (powerUp.type) {
             case PowerUpType.life:
               lives += 1;
@@ -629,7 +629,7 @@ class GameEngine {
 
         if (hitBullet) {
           hit++;
-          if(highHit > hit) highHit = hit;
+          if(hit > highHit) highHit = hit;
           _createExplosion(enemy.x, enemy.y);
           
           enemy.life -= 1;

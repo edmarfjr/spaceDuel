@@ -7,13 +7,15 @@ class ControlPad extends StatelessWidget {
   final VoidCallback onPause; // Pausa o jogo
   final VoidCallback onToggleDir;
   final VoidCallback onFire;
+  final bool gameStarted;
 
   const ControlPad({
     super.key, 
     required this.onStart, 
     required this.onPause,
     required this.onToggleDir, 
-    required this.onFire
+    required this.onFire,
+    this.gameStarted = false,
   });
   void _vibrate() {
     // lightImpact: vibração sutil (tipo teclado)
@@ -22,13 +24,20 @@ class ControlPad extends StatelessWidget {
   }
   @override
   Widget build(BuildContext context) {
+    TextStyle tutorialStyle = const TextStyle(
+      color: Color(0xFF303080), 
+      fontSize: 16, 
+      fontFamily: 'Courier', 
+      fontWeight: FontWeight.bold
+    );
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          // Botão Jato (Esquerda)
-          GestureDetector(
+          // Botão mudar direção (Esquerda)
+          Column(
+            children: [GestureDetector(
             onTap: () {
               onStart();
               onToggleDir();
@@ -38,6 +47,11 @@ class ControlPad extends StatelessWidget {
             //onTapUp: (_) => onJet(false),
             //onTapCancel: () => onJet(false),
             child: _buildButton(size: 120, color: AppColors.btnBlack, icon: Icons.unfold_more),
+            
+          ),const SizedBox(width: 90),
+          Text('Change Direction', style: tutorialStyle,),
+          
+          ],
           ),
           
           // --- ÁREA CENTRAL (SELECT / START) ---
@@ -50,7 +64,7 @@ class ControlPad extends StatelessWidget {
                    //_buildPillButton(label: "SELECT", onTap: () {}),
                    const SizedBox(width: 20),
                    // Start (Pause / Play)
-                   _buildPillButton(label: "START", onTap: onPause),
+                   _buildPillButton(label: "PAUSE", onTap: onPause),
                  ],
                ),
                const SizedBox(height: 20),
@@ -58,14 +72,18 @@ class ControlPad extends StatelessWidget {
           ),
 
           // Botão Tiro (Direita)
-          GestureDetector(
-           onTap: () {
+          Column(children: [
+            GestureDetector(
+              onTap: () {
               onStart();
               onFire();
               _vibrate();
             },
             child: _buildButton(size: 120, color: AppColors.btnRed, icon: Icons.gps_fixed),
-          ),
+            ),const SizedBox(width: 90),
+          Text('Shoot', style: tutorialStyle,),
+          ],)
+          
         ],
       ),
     );
