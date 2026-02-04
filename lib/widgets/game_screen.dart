@@ -183,7 +183,7 @@ class GameScreenLCD extends StatelessWidget {
                 ...engine.npcs.map((npc) => positionObject(
                   x: npc.x, y: npc.y, 
                   w: 0.15, h: 0.15, // Tamanho aproximado
-                  visualScale: 1.3,
+                  visualScale: 1.8,
                   child: Container(
                     decoration: const BoxDecoration(
                       //shape: BoxShape.circle,
