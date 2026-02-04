@@ -34,6 +34,7 @@ class GameEngine {
   List<Particle> particles = [];
   List<NPC> npcs = [];
   int npcSpawnTimer = 0;
+  int npcSpwTime = 600;
 
   int level = 1;
 
@@ -79,6 +80,7 @@ class GameEngine {
     particles.clear();
     npcs.clear();
     npcSpawnTimer = 0;
+    npcSpwTime = 600;
 
     _generateObstacles();
   }
@@ -220,9 +222,8 @@ class GameEngine {
   }
 
   void _updateNPCs() {
-    // 1. Spawner (Nasce a cada ~10 segundos)
     npcSpawnTimer++;
-    if (npcSpawnTimer > 600 && npcs.isEmpty) { // 60fps * 10s
+    if (npcSpawnTimer > npcSpwTime && npcs.isEmpty) { // 60fps * 10s
       _spawnNPC();
       
     }
@@ -233,7 +234,11 @@ class GameEngine {
       double dx = npc.targetX - npc.x;
       double dy = npc.targetY - npc.y;
       double dist = sqrt(dx*dx + dy*dy);
-
+      if (dx > 0){
+        npc.dir = 1;
+      }else{
+        npc.dir = -1;
+      }
       if (dist < 0.05) {
         // Chegou no waypoint, escolhe o próximo
         npc.pickNextWaypoint();
@@ -247,6 +252,7 @@ class GameEngine {
       if ((npc.finalY > 0 && npc.y > 1.2) || (npc.finalY < 0 && npc.y < -1.2)) {
         npc.isDead = true; // Saiu da tela em segurança
         npcSpawnTimer = 0;
+        npcSpwTime = Random().nextInt(1200) + 600;
       }
     }
   }
@@ -653,9 +659,12 @@ class GameEngine {
       for (var npc in npcs) {
         if (checkOverlap(pBullet.x, pBullet.y, GameConfig.bulletWidth, GameConfig.bulletHeight, npc.x, npc.y, 0.15, 0.15)) {
           pBullet.isDead = true;
+          npc.isDead = true;
           if (!isInvulnerable) {
           lives = max(0, lives - 1);
           _invulnerableTimer = GameConfig.invulnerabilityFrames;
+          score -= 5;
+          score = max(0,score);
           _createExplosion(-0.8, shipY);
 
           if (lives <= 0) {
@@ -713,7 +722,13 @@ class GameEngine {
             lives = max(0, lives - 1);
             _invulnerableTimer = GameConfig.invulnerabilityFrames;
             _createExplosion(-0.8, shipY); // Explosão na nave
-            if (lives <= 0 && score > highScore) { highScore = score; onNewHighScoreEvent?.call(highScore); }
+            if (lives <= 0) {
+              if (score > highScore) {
+                highScore = score;
+                onNewHighScoreEvent?.call(highScore);
+              }
+              return true; // Game Over
+            }
           }
        }
     }

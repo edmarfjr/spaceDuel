@@ -120,6 +120,7 @@ class NPC {
   double x;
   double y;
   double speed;
+  int dir = 0;
   bool isDead = false;
 
   // Lógica de Movimento

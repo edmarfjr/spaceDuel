@@ -15,9 +15,9 @@ class GameConfig {
   static const double waveAmplitude = 0.15; // Largura da onda (o quanto ela abre)
   static const double waveFrequency = 5.0;  // Velocidade da oscilação
   // Configuração do Teleguiado
-  static const double homingSpeed = 0.015; // Um pouco mais lento que o tiro normal
-  static const double homingTurnRate = 0.025; // 5% de correção de curso por frame (Agilidade)
-  static const int homingLifeTime = 180; // Vive por 3 segundos (60fps * 3)
+  static const double homingSpeed = 0.01; // Um pouco mais lento que o tiro normal
+  static const double homingTurnRate = 0.02; // 5% de correção de curso por frame (Agilidade)
+  static const int homingLifeTime = 240; // Vive por 3 segundos (60fps * 3)
   // Configuração do Laser
   static const int laserChargeTime = 60; // 1 segundo carregando (aviso)
   static const int laserDuration = 90;   // 1.5 segundos atirando (perigo!)

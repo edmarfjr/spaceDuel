@@ -125,6 +125,15 @@ class GameScreenLCD extends StatelessWidget {
               Icons.apartment,
               Icons.store,
               Icons.terrain,
+              Icons.park,
+            ];
+            
+            //lista de icones para npcs
+            final List<IconData> npcIcons = [
+              Icons.directions_bike,
+              Icons.directions_car,
+              Icons.directions_run,
+              Icons.directions_bus,
             ];
 
             return Stack(
@@ -184,12 +193,9 @@ class GameScreenLCD extends StatelessWidget {
                   x: npc.x, y: npc.y, 
                   w: 0.15, h: 0.15, // Tamanho aproximado
                   visualScale: 1.8,
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      //shape: BoxShape.circle,
-                     // boxShadow: [BoxShadow(color: AppColors.obstacle, blurRadius: 5)],
-                    ),
-                    child: const Icon(Icons.directions_run, color: AppColors.pixel, size: 24), // Carinha feliz
+                  child: Transform.flip(
+                    flipX: npc.dir > 0 ? false : true,
+                    child:  Icon(npcIcons[npc.hashCode % npcIcons.length], color: AppColors.pixel, size: 24), // Carinha feliz
                   ),
                 )),
                 //powerup
