@@ -8,6 +8,7 @@ class ControlPad extends StatelessWidget {
   final VoidCallback onToggleDir;
   final VoidCallback onFire;
   final bool gameStarted;
+  final bool debugMode;
 
   const ControlPad({
     super.key, 
@@ -16,12 +17,24 @@ class ControlPad extends StatelessWidget {
     required this.onToggleDir, 
     required this.onFire,
     this.gameStarted = false,
+    this.debugMode = false,
   });
   void _vibrate() {
     // lightImpact: vibração sutil (tipo teclado)
     // mediumImpact: vibração mais seca (tipo colisão)
     HapticFeedback.lightImpact(); 
   }
+
+  Widget _debugBorder(Widget child) {
+    if (!debugMode) return child;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.redAccent, width: 2),
+      ),
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     TextStyle tutorialStyle = const TextStyle(
@@ -46,7 +59,7 @@ class ControlPad extends StatelessWidget {
             //onTapDown: (_) { onStart(); onJet(true); _vibrate();},
             //onTapUp: (_) => onJet(false),
             //onTapCancel: () => onJet(false),
-            child: _buildButton(size: 120, color: AppColors.btnBlack, icon: Icons.unfold_more),
+            child: _debugBorder(_buildButton(size: 150, color: AppColors.btnBlack, icon: Icons.unfold_more)),
             
           ),const SizedBox(width: 90),
           Text('Change Direction', style: tutorialStyle,),
@@ -64,7 +77,7 @@ class ControlPad extends StatelessWidget {
                    //_buildPillButton(label: "SELECT", onTap: () {}),
                    const SizedBox(width: 20),
                    // Start (Pause / Play)
-                   _buildPillButton(label: "PAUSE", onTap: onPause),
+                   _debugBorder(_buildPillButton(label: "PAUSE", onTap: onPause)),
                  ],
                ),
                const SizedBox(height: 20),
@@ -79,7 +92,7 @@ class ControlPad extends StatelessWidget {
               onFire();
               _vibrate();
             },
-            child: _buildButton(size: 120, color: AppColors.btnRed, icon: Icons.gps_fixed),
+            child: _debugBorder(_buildButton(size: 150, color: AppColors.btnRed, icon: Icons.gps_fixed)),
             ),const SizedBox(width: 90),
           Text('Shoot', style: tutorialStyle,),
           ],)
@@ -116,10 +129,10 @@ class ControlPad extends StatelessWidget {
           child: Transform.rotate(
             angle: -0.5, // Inclinação clássica
             child: Container(
-              width: 60, height: 20,
+              width: 70, height: 25,
               decoration: BoxDecoration(
                 color: AppColors.btnBlack,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(15),
                 boxShadow: const [BoxShadow(color: Colors.black26, offset: Offset(1, 2), blurRadius: 2)],
               ),
             ),

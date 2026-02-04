@@ -222,6 +222,8 @@ class _GamePageState extends State<GamePage> with TickerProviderStateMixin {
                     }
                   }
                 },
+                gameStarted: _gameStarted,
+                debugMode: _engine.showHitboxes,
               ),
             ),
           ],

@@ -32,6 +32,8 @@ class GameEngine {
   List<GameObj> bullets = [];
   List<GameObj> obstaculos = [];
   List<Particle> particles = [];
+  List<NPC> npcs = [];
+  int npcSpawnTimer = 0;
 
   int level = 1;
 
@@ -75,6 +77,8 @@ class GameEngine {
     enemyBlts.clear();
     bullets.clear();
     particles.clear();
+    npcs.clear();
+    npcSpawnTimer = 0;
 
     _generateObstacles();
   }
@@ -206,11 +210,60 @@ class GameEngine {
     _updateEnemyBullets();
     _updateBullets();
     _updateParticles();
+    _updateNPCs();
 
     enemyBlts.removeWhere((m) => m.isDead );
     bullets.removeWhere((b) => b.isDead);
+    npcs.removeWhere((n) => n.isDead);
 
     return _checkCollisions();
+  }
+
+  void _updateNPCs() {
+    // 1. Spawner (Nasce a cada ~10 segundos)
+    npcSpawnTimer++;
+    if (npcSpawnTimer > 600 && npcs.isEmpty) { // 60fps * 10s
+      _spawnNPC();
+      
+    }
+
+    // 2. Movimento
+    for (var npc in npcs) {
+      // Calcula distância até o waypoint atual
+      double dx = npc.targetX - npc.x;
+      double dy = npc.targetY - npc.y;
+      double dist = sqrt(dx*dx + dy*dy);
+
+      if (dist < 0.05) {
+        // Chegou no waypoint, escolhe o próximo
+        npc.pickNextWaypoint();
+      } else {
+        // Move em direção ao waypoint
+        npc.x += (dx / dist) * npc.speed;
+        npc.y += (dy / dist) * npc.speed;
+      }
+
+      // Verifica se saiu da tela (chegou no destino final)
+      if ((npc.finalY > 0 && npc.y > 1.2) || (npc.finalY < 0 && npc.y < -1.2)) {
+        npc.isDead = true; // Saiu da tela em segurança
+        npcSpawnTimer = 0;
+      }
+    }
+  }
+
+  void _spawnNPC() {
+    // Decide se nasce em CIMA ou EM BAIXO
+    bool startTop = Random().nextBool();
+    double startY = startTop ? -1.1 : 1.1;
+    double endY = startTop ? 1.2 : -1.2;
+    double startX = (Random().nextDouble() * 1.6) - 0.8;
+
+    npcs.add(NPC(
+      x: startX, 
+      y: startY, 
+      finalY: endY,
+      speed: 0.003 + (Random().nextDouble() * 0.002) // Velocidade aleatória
+    ));
   }
 
   void toggleDir() {
@@ -317,6 +370,38 @@ class GameEngine {
           _fireHomingMissile();
           enemy.shootTimer = 0;
         }
+      case EnemyType.laser:
+        // O inimigo de laser para de se mover quando vai atirar para facilitar a mira
+        if (enemy.laserState != LaserState.idle) {
+          enemy.y -= enemy.vy; // Anula o movimento (Freia)
+        }
+
+        enemy.laserTimer++;
+
+        if (enemy.laserState == LaserState.idle) {
+          // Fase 1: Espera o cooldown
+          if (enemy.laserTimer > GameConfig.laserCooldown) {
+            enemy.laserState = LaserState.charging;
+            enemy.laserTimer = 0;
+            // Opcional: Tocar som de "carregando"
+          }
+        } 
+        else if (enemy.laserState == LaserState.charging) {
+          // Fase 2: Carregando (Mira)
+          if (enemy.laserTimer > GameConfig.laserChargeTime) {
+            enemy.laserState = LaserState.firing;
+            enemy.laserTimer = 0;
+            if (enableSound) onShootEvent?.call();
+          }
+        } 
+        else if (enemy.laserState == LaserState.firing) {
+          // Fase 3: FOGO!
+          if (enemy.laserTimer > GameConfig.laserDuration) {
+            enemy.laserState = LaserState.idle; // Acabou, volta a descansar
+            enemy.laserTimer = 0;
+          }
+        }
+        break;    
     }
   }
 
@@ -561,6 +646,30 @@ class GameEngine {
         }
       }
     }
+
+    //JOGADOR ATIRA NO NPC (FOGO AMIGO) -> PUNIÇÃO
+    for (var pBullet in bullets) {
+      if (pBullet.isDead) continue;
+      for (var npc in npcs) {
+        if (checkOverlap(pBullet.x, pBullet.y, GameConfig.bulletWidth, GameConfig.bulletHeight, npc.x, npc.y, 0.15, 0.15)) {
+          pBullet.isDead = true;
+          if (!isInvulnerable) {
+          lives = max(0, lives - 1);
+          _invulnerableTimer = GameConfig.invulnerabilityFrames;
+          _createExplosion(-0.8, shipY);
+
+          if (lives <= 0) {
+            if (score > highScore) {
+              highScore = score;
+              onNewHighScoreEvent?.call(highScore);
+            }
+            return true; // Game Over
+          }
+        }
+          break;
+        }
+      }
+    }
     
     for (var eb in enemyBlts) {
       if (eb.isDead) continue; 
@@ -588,6 +697,25 @@ class GameEngine {
           }
         }
       }
+    }
+    // E. NOVO: Colisão JOGADOR VS RAIO LASER
+    if (enemy.type == EnemyType.laser && enemy.laserState == LaserState.firing) {
+       // O Laser é um retângulo que vai da esquerda (-1.0) até o inimigo (enemy.x)
+       // A altura é fina (0.1 ou algo assim)
+       double laserX = (enemy.x - 1.0) / 2; // Centro do laser no eixo X
+       double laserW = enemy.x - (-1.0);    // Largura total
+       
+       if (checkOverlap(
+            -0.8, shipY, GameConfig.shipWidth, GameConfig.shipHeight, // Jogador
+            laserX, enemy.y, laserW, 0.15 // Laser (0.15 de altura)
+       )) {
+          if (!isInvulnerable) {
+            lives = max(0, lives - 1);
+            _invulnerableTimer = GameConfig.invulnerabilityFrames;
+            _createExplosion(-0.8, shipY); // Explosão na nave
+            if (lives <= 0 && score > highScore) { highScore = score; onNewHighScoreEvent?.call(highScore); }
+          }
+       }
     }
     // 2. Colisão Tiro
       for (var bullet in bullets) {

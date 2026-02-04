@@ -18,6 +18,10 @@ class GameConfig {
   static const double homingSpeed = 0.015; // Um pouco mais lento que o tiro normal
   static const double homingTurnRate = 0.025; // 5% de correção de curso por frame (Agilidade)
   static const int homingLifeTime = 180; // Vive por 3 segundos (60fps * 3)
+  // Configuração do Laser
+  static const int laserChargeTime = 60; // 1 segundo carregando (aviso)
+  static const int laserDuration = 90;   // 1.5 segundos atirando (perigo!)
+  static const int laserCooldown = 120;  // 2 segundos descansando
 
   static const double powerUpWidth = 0.15;
   static const double powerUpHeight = 0.15;
@@ -40,4 +44,7 @@ class AppColors {
   static const Color obstacle = Color(0xFF2F4F2F);
   static const Color btnRed = Color(0xFFA82020);
   static const Color btnBlack = Colors.black;
+  static const Color laserEnemy = Color(0xFFE04040); // Vermelho para a nave
+  static const Color laserBeam = Color(0xFFFF0000);  // O raio em si
+  static const Color laserWarning = Color(0x55FF0000); // O aviso (transparente)
 }

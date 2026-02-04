@@ -95,6 +95,8 @@ class GameScreenLCD extends StatelessWidget {
                   return Icons.blur_on;
                 case EnemyType.homing: 
                   return Icons.gps_fixed;
+                case EnemyType.laser: 
+                  return Icons.camera;
                 default: 
                   return Icons.airplanemode_active; // Jato padrão
               }
@@ -110,7 +112,7 @@ class GameScreenLCD extends StatelessWidget {
                 case PowerUpType.weaponUpgrade: 
                   return Icons.stars; // Arma
                 case PowerUpType.bulletSpeed:
-                  return Icons.flash_on; // Velocidade da bala
+                  return Icons.bolt; // Velocidade da bala
                 default: 
                   return Icons.question_mark; // Pergunta (fallback)
               }
@@ -118,11 +120,11 @@ class GameScreenLCD extends StatelessWidget {
 
             // Lista de ícones para os obstáculos (Construções)
             final List<IconData> buildingIcons = [
-              Icons.domain,
+              Icons.forest,
               Icons.location_city,
               Icons.apartment,
               Icons.store,
-              Icons.business,
+              Icons.terrain,
             ];
 
             return Stack(
@@ -177,6 +179,19 @@ class GameScreenLCD extends StatelessWidget {
                     child: Icon(iconData, color: AppColors.obstacle, size: 30) // Ícone de prédio
                   );
                 }),
+                //npcs
+                ...engine.npcs.map((npc) => positionObject(
+                  x: npc.x, y: npc.y, 
+                  w: 0.15, h: 0.15, // Tamanho aproximado
+                  visualScale: 1.3,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      //shape: BoxShape.circle,
+                     // boxShadow: [BoxShadow(color: AppColors.obstacle, blurRadius: 5)],
+                    ),
+                    child: const Icon(Icons.directions_run, color: AppColors.pixel, size: 24), // Carinha feliz
+                  ),
+                )),
                 //powerup
                if (gameStarted && (engine.powerUp.isCollected || engine.powerUp.timer > 300 || DateTime.now().millisecondsSinceEpoch % 100 < 50)) // Só mostra se o jogo começou
                   positionObject(
@@ -195,6 +210,30 @@ class GameScreenLCD extends StatelessWidget {
                     : FittedBox(
                       fit: BoxFit.contain,
                       child: Icon(getPowerUpIcon(), color: AppColors.pixel),
+                    ),
+                  ),
+                  // --- RENDERIZAÇÃO DO LASER ---
+                if (gameStarted && engine.enemy.type == EnemyType.laser && engine.enemy.laserState != LaserState.idle)
+                  Positioned(
+                    // O laser vai da borda esquerda (-1) até o inimigo (enemy.x)
+                    left: 0, 
+                    right: ((1 - engine.enemy.x) / 2) * screenW + (GameConfig.enemyWidth/2 * screenW/2), // Gruda no inimigo
+                    top: ((engine.enemy.y + 1) / 2) * screenH - (engine.enemy.laserState == LaserState.firing ? 20 : 2), // Ajusta altura
+                    
+                    child: Container(
+                      height: engine.enemy.laserState == LaserState.firing ? 40 : 4, // Grosso se atirando, fino se mirando
+                      decoration: BoxDecoration(
+                        // Se estiver atirando, cor sólida brilhante. Se carregando, cor transparente piscante.
+                        color: engine.enemy.laserState == LaserState.firing 
+                            ? AppColors.pixel.withOpacity(0.8) 
+                            : AppColors.obstacle.withOpacity(DateTime.now().millisecondsSinceEpoch % 200 > 100 ? 0.5 : 0.2), // Pisca pisca
+                        
+                        boxShadow: engine.enemy.laserState == LaserState.firing ? [
+                          const BoxShadow(color: AppColors.obstacle, blurRadius: 15, spreadRadius: 5)
+                        ] : null,
+                        
+                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(10)),
+                      ),
                     ),
                   ),
                 //inimigo
